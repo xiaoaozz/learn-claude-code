@@ -1,22 +1,22 @@
 #!/usr/bin/env python3
-# Harness: tool dispatch -- expanding what the model can reach.
+# 框架：工具调度 -- 扩展模型能够触及的范围。
 """
-s02_tool_use.py - Tools
+s02_tool_use.py - 工具使用
 
-The agent loop from s01 didn't change. We just added tools to the array
-and a dispatch map to route calls.
+相比 s01 的代理循环没有任何改变。我们只是在数组中添加了工具
+以及一个用于路由调用的调度映射。
 
     +----------+      +-------+      +------------------+
-    |   User   | ---> |  LLM  | ---> | Tool Dispatch    |
-    |  prompt  |      |       |      | {                |
+    |   用户   | ---> |  LLM  | ---> | 工具调度          |
+    |  提示词  |      |       |      | {                |
     +----------+      +---+---+      |   bash: run_bash |
                           ^          |   read: run_read |
                           |          |   write: run_wr  |
                           +----------+   edit: run_edit |
-                          tool_result| }                |
+                          工具结果   | }                |
                                      +------------------+
 
-Key insight: "The loop didn't change at all. I just added tools."
+核心洞察："循环根本没有改变，只是添加了工具。
 """
 
 import os
