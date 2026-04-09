@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useSteppedVisualization } from "@/hooks/useSteppedVisualization";
 import { StepControls } from "@/components/visualizations/shared/step-controls";
 import { useSvgPalette } from "@/hooks/useDarkMode";
+import { useTranslations } from "@/lib/i18n";
 
 // -- Tool definitions --
 
@@ -65,7 +66,7 @@ const REQUEST_PER_STEP: (string | null)[] = [
 ];
 
 // Step annotations
-const STEP_INFO = [
+const STEP_INFO_STATIC = [
   { title: "The Dispatch Map", desc: "A dictionary maps tool names to handler functions. The loop code never changes." },
   { title: "Route: bash", desc: "tool_call.name -> handlers['bash'](input). Name-based routing." },
   { title: "Route: read_file", desc: "Same pattern, different handler. Validate input, execute, return result." },
@@ -104,9 +105,10 @@ export default function ToolDispatch({ title }: { title?: string }) {
   } = useSteppedVisualization({ totalSteps: 6, autoPlayInterval: 2500 });
 
   const palette = useSvgPalette();
+  const tv = useTranslations("viz_steps");
   const activeToolIdx = ACTIVE_TOOL_PER_STEP[currentStep];
   const request = REQUEST_PER_STEP[currentStep];
-  const stepInfo = STEP_INFO[currentStep];
+  const stepInfo = STEP_INFO_STATIC[currentStep];
   const isAllActive = activeToolIdx === 4;
 
   return (
@@ -372,8 +374,8 @@ export default function ToolDispatch({ title }: { title?: string }) {
         onReset={reset}
         isPlaying={isPlaying}
         onToggleAutoPlay={toggleAutoPlay}
-        stepTitle={stepInfo.title}
-        stepDescription={stepInfo.desc}
+        stepTitle={tv(`s02_${currentStep}_title`) || stepInfo.title}
+        stepDescription={tv(`s02_${currentStep}_desc`) || stepInfo.desc}
       />
     </section>
   );

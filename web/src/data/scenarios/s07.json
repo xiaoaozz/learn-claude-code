@@ -2,6 +2,108 @@
   "version": "s07",
   "title": "Tasks",
   "description": "Agent uses persistent file-based tasks with dependencies",
+  "zh": {
+    "description": "agent 使用带依赖关系的持久化文件型任务",
+    "steps": [
+      {
+        "type": "user_message",
+        "content": "构建一个带用户认证、数据库和部署配置的 REST API",
+        "annotation": "需要依赖追踪的多部分任务"
+      },
+      {
+        "type": "tool_call",
+        "content": "create_task(\"设置数据库 schema\", deps=[])\ncreate_task(\"实现用户模型\", deps=[1])\ncreate_task(\"添加认证端点\", deps=[2])\ncreate_task(\"编写部署配置\", deps=[3])",
+        "toolName": "task_manager",
+        "annotation": "TaskManager 创建带明确依赖关系的文件型任务"
+      },
+      {
+        "type": "tool_result",
+        "content": "已在 .tasks/ 中创建 4 个任务\n  #1 设置数据库 schema [就绪]\n  #2 实现用户模型 [被 #1 阻塞]\n  #3 添加认证端点 [被 #2 阻塞]\n  #4 编写部署配置 [被 #3 阻塞]",
+        "toolName": "task_manager",
+        "annotation": "任务以 JSON 文件形式持久化到 .tasks/ 目录"
+      },
+      {
+        "type": "tool_call",
+        "content": "schema.sql\n---\nCREATE TABLE users (id SERIAL PRIMARY KEY, email TEXT UNIQUE, password_hash TEXT);",
+        "toolName": "write_file",
+        "annotation": "处理任务 #1"
+      },
+      {
+        "type": "tool_result",
+        "content": "文件写入成功",
+        "toolName": "write_file",
+        "annotation": "Schema 已创建"
+      },
+      {
+        "type": "tool_call",
+        "content": "complete_task(1)",
+        "toolName": "task_manager",
+        "annotation": "完成任务 #1 将自动解锁任务 #2"
+      },
+      {
+        "type": "tool_result",
+        "content": "任务 #1 已完成。任务 #2 现已就绪。",
+        "toolName": "task_manager",
+        "annotation": "文件型持久化比进程内存更持久"
+      },
+      {
+        "type": "assistant_text",
+        "content": "数据库 schema 已完成，开始实现用户模型。",
+        "annotation": "依赖图确保任务以正确顺序执行"
+      }
+    ]
+  },
+  "ja": {
+    "description": "依存関係を持つ永続的なファイルベースのタスクを使用するエージェント",
+    "steps": [
+      {
+        "type": "user_message",
+        "content": "ユーザー認証、データベース、デプロイ設定を含む REST API を構築してください",
+        "annotation": "依存関係の追跡が必要な複数部分のタスク"
+      },
+      {
+        "type": "tool_call",
+        "content": "create_task(\"データベーススキーマをセットアップ\", deps=[])\ncreate_task(\"ユーザーモデルを実装\", deps=[1])\ncreate_task(\"認証エンドポイントを追加\", deps=[2])\ncreate_task(\"デプロイ設定を作成\", deps=[3])",
+        "toolName": "task_manager",
+        "annotation": "TaskManager が明示的な依存関係を持つファイルベースのタスクを作成"
+      },
+      {
+        "type": "tool_result",
+        "content": ".tasks/ に 4 つのタスクを作成\n  #1 データベーススキーマをセットアップ [準備完了]\n  #2 ユーザーモデルを実装 [#1 でブロック]\n  #3 認証エンドポイントを追加 [#2 でブロック]\n  #4 デプロイ設定を作成 [#3 でブロック]",
+        "toolName": "task_manager",
+        "annotation": "タスクが .tasks/ ディレクトリに JSON ファイルとして永続化"
+      },
+      {
+        "type": "tool_call",
+        "content": "schema.sql\n---\nCREATE TABLE users (id SERIAL PRIMARY KEY, email TEXT UNIQUE, password_hash TEXT);",
+        "toolName": "write_file",
+        "annotation": "タスク #1 に取り組む"
+      },
+      {
+        "type": "tool_result",
+        "content": "ファイルの書き込みに成功しました",
+        "toolName": "write_file",
+        "annotation": "スキーマが作成された"
+      },
+      {
+        "type": "tool_call",
+        "content": "complete_task(1)",
+        "toolName": "task_manager",
+        "annotation": "タスク #1 を完了するとタスク #2 が自動的にブロック解除"
+      },
+      {
+        "type": "tool_result",
+        "content": "タスク #1 が完了しました。タスク #2 が準備完了になりました。",
+        "toolName": "task_manager",
+        "annotation": "ファイルベースの永続化はプロセスメモリより長持ちする"
+      },
+      {
+        "type": "assistant_text",
+        "content": "データベーススキーマが完了しました。ユーザーモデルの実装に移ります。",
+        "annotation": "依存グラフによりタスクが正しい順序で実行される"
+      }
+    ]
+  },
   "steps": [
     {
       "type": "user_message",

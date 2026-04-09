@@ -2,6 +2,90 @@
   "version": "s05",
   "title": "Skills",
   "description": "Agent loads external knowledge from SKILL.md files",
+  "zh": {
+    "description": "agent 从 SKILL.md 文件加载外部知识",
+    "steps": [
+      {
+        "type": "user_message",
+        "content": "搭建一个新的带 TypeScript 的 Next.js 项目",
+        "annotation": "任务需要框架专有知识"
+      },
+      {
+        "type": "system_event",
+        "content": "[SkillLoader] 正在扫描 SKILL.md 文件... 已找到：nextjs.SKILL.md",
+        "annotation": "SkillLoader 在循环运行前找到匹配的技能文件"
+      },
+      {
+        "type": "system_event",
+        "content": "[技能已注入] nextjs.SKILL.md -> 追加 tool_result 消息",
+        "annotation": "技能内容作为 tool_result 注入，不会膨胀系统提示词"
+      },
+      {
+        "type": "assistant_text",
+        "content": "我已获取 Next.js 配置知识，现在创建项目结构。",
+        "annotation": "模型现在通过技能文件获取了框架专有知识"
+      },
+      {
+        "type": "tool_call",
+        "content": "npx create-next-app@latest my-app --typescript --tailwind --eslint --app --src-dir",
+        "toolName": "bash",
+        "annotation": "使用技能提供的知识选择正确的参数"
+      },
+      {
+        "type": "tool_result",
+        "content": "成功！在 /workspace/my-app 创建了 my-app",
+        "toolName": "bash",
+        "annotation": "项目以正确配置创建成功"
+      },
+      {
+        "type": "assistant_text",
+        "content": "Next.js 项目已创建，包含 TypeScript、Tailwind CSS、ESLint、App Router 和 src/ 目录。",
+        "annotation": "技能通过 tool_result 而非系统提示词注入——保持上下文精简"
+      }
+    ]
+  },
+  "ja": {
+    "description": "エージェントが SKILL.md ファイルから外部知識を読み込む",
+    "steps": [
+      {
+        "type": "user_message",
+        "content": "TypeScript を使った新しい Next.js プロジェクトをセットアップしてください",
+        "annotation": "フレームワーク固有の知識が必要なタスク"
+      },
+      {
+        "type": "system_event",
+        "content": "[SkillLoader] SKILL.md ファイルをスキャン中... 発見：nextjs.SKILL.md",
+        "annotation": "SkillLoader がループ実行前にマッチするスキルファイルを発見"
+      },
+      {
+        "type": "system_event",
+        "content": "[スキル注入] nextjs.SKILL.md -> tool_result メッセージを追加",
+        "annotation": "スキル内容は tool_result として注入され、システムプロンプトを膨らませない"
+      },
+      {
+        "type": "assistant_text",
+        "content": "Next.js のセットアップ知識があります。プロジェクト構造を作成します。",
+        "annotation": "モデルがスキルファイルからフレームワーク固有の知識を取得"
+      },
+      {
+        "type": "tool_call",
+        "content": "npx create-next-app@latest my-app --typescript --tailwind --eslint --app --src-dir",
+        "toolName": "bash",
+        "annotation": "スキルが提供した知識で正しいフラグを使用"
+      },
+      {
+        "type": "tool_result",
+        "content": "成功！/workspace/my-app に my-app を作成しました",
+        "toolName": "bash",
+        "annotation": "正しい設定でプロジェクトが作成された"
+      },
+      {
+        "type": "assistant_text",
+        "content": "TypeScript、Tailwind CSS、ESLint、App Router、src/ ディレクトリを含む Next.js プロジェクトを作成しました。",
+        "annotation": "スキルはシステムプロンプトではなく tool_result を通じて注入——コンテキストをリーンに保つ"
+      }
+    ]
+  },
   "steps": [
     {
       "type": "user_message",

@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useSteppedVisualization } from "@/hooks/useSteppedVisualization";
 import { StepControls } from "@/components/visualizations/shared/step-controls";
 import { useSvgPalette } from "@/hooks/useDarkMode";
+import { useTranslations } from "@/lib/i18n";
 
 type Protocol = "shutdown" | "plan";
 
@@ -191,6 +192,10 @@ export default function TeamProtocols({ title }: { title?: string }) {
   const vis = useSteppedVisualization({ totalSteps, autoPlayInterval: 2500 });
   const step = vis.currentStep;
   const palette = useSvgPalette();
+  const tv = useTranslations("viz_steps");
+
+  // Step offset for plan protocol: indices 4-6
+  const tvStep = protocol === "shutdown" ? step : step + 4;
 
   const switchProtocol = (p: Protocol) => {
     setProtocol(p);
@@ -487,8 +492,8 @@ export default function TeamProtocols({ title }: { title?: string }) {
             onReset={vis.reset}
             isPlaying={vis.isPlaying}
             onToggleAutoPlay={vis.toggleAutoPlay}
-            stepTitle={steps[step].title}
-            stepDescription={steps[step].desc}
+            stepTitle={tv(`s10_${tvStep}_title`) || steps[step].title}
+            stepDescription={tv(`s10_${tvStep}_desc`) || steps[step].desc}
           />
         </div>
       </div>

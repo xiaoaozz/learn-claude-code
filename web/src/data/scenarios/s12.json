@@ -2,6 +2,104 @@
   "version": "s12",
   "title": "Worktree + Task Isolation",
   "description": "Use a shared task board with optional worktree lanes for clean parallel execution",
+  "zh": {
+    "description": "使用共享任务看板和可选的 worktree 通道实现干净的并行执行",
+    "steps": [
+      {
+        "type": "user_message",
+        "content": "并行实现认证重构和登录 UI 更新",
+        "annotation": "在同一工作区中的两个活跃任务会相互冲突"
+      },
+      {
+        "type": "tool_call",
+        "content": "task_create(subject: \"认证重构\")\ntask_create(subject: \"登录 UI 优化\")",
+        "toolName": "task_manager",
+        "annotation": "共享看板仍然是协调的唯一真实来源"
+      },
+      {
+        "type": "tool_call",
+        "content": "worktree_create(name: \"auth-refactor\", task_id: 1)\nworktree_create(name: \"ui-login\")\ntask_bind_worktree(task_id: 2, worktree: \"ui-login\")",
+        "toolName": "worktree_manager",
+        "annotation": "通道分配和任务关联是可组合的；任务 2 在通道创建后绑定"
+      },
+      {
+        "type": "system_event",
+        "content": "worktree.create.before/after 事件已发出\n.tasks/task_1.json -> { status: \"in_progress\", worktree: \"auth-refactor\" }\n.tasks/task_2.json -> { status: \"in_progress\", worktree: \"ui-login\" }\n.worktrees/index.json 已更新",
+        "annotation": "控制平面状态保持规范；钩子式消费者可以响应生命周期事件，无需持有规范状态写入权"
+      },
+      {
+        "type": "tool_call",
+        "content": "worktree_run(name: \"auth-refactor\", command: \"pytest tests/auth -q\")\nworktree_run(name: \"ui-login\", command: \"npm test -- login\")",
+        "toolName": "worktree_run",
+        "annotation": "在此教学运行时中，命令按通道限定的工作目录路由；其他运行时可能使用会话级目录切换"
+      },
+      {
+        "type": "tool_call",
+        "content": "worktree_keep(name: \"ui-login\")\nworktree_remove(name: \"auth-refactor\", complete_task: true)\nworktree_events(limit: 10)",
+        "toolName": "worktree_manager",
+        "annotation": "收尾是显式的工具驱动状态转换：在一次操作中混合保留/删除决策并查询生命周期事件"
+      },
+      {
+        "type": "system_event",
+        "content": "ui-login 的 worktree.keep 事件已发出\nauth-refactor 的 worktree.remove.before/after 事件已发出\ntask.completed 事件已为 #1 发出\n.worktrees/events.jsonl 已追加",
+        "annotation": "生命周期转换成为显式记录，而任务/worktree 文件仍为数据真实来源"
+      },
+      {
+        "type": "assistant_text",
+        "content": "任务看板负责协调，worktree 负责隔离。并行轨道保持干净且可审计。",
+        "annotation": "在一个看板中协调，只在需要时按通道隔离，并从生命周期事件中运行可选的策略/审计副作用"
+      }
+    ]
+  },
+  "ja": {
+    "description": "クリーンな並行実行のための共有タスクボードとオプションの worktree レーン",
+    "steps": [
+      {
+        "type": "user_message",
+        "content": "認証リファクタリングとログイン UI 更新を並行して実装してください",
+        "annotation": "1つのワークスペースでの2つのアクティブなタスクは衝突する"
+      },
+      {
+        "type": "tool_call",
+        "content": "task_create(subject: \"認証リファクタリング\")\ntask_create(subject: \"ログイン UI ポリッシュ\")",
+        "toolName": "task_manager",
+        "annotation": "共有ボードが調整の唯一の信頼できる情報源として残る"
+      },
+      {
+        "type": "tool_call",
+        "content": "worktree_create(name: \"auth-refactor\", task_id: 1)\nworktree_create(name: \"ui-login\")\ntask_bind_worktree(task_id: 2, worktree: \"ui-login\")",
+        "toolName": "worktree_manager",
+        "annotation": "レーン割り当てとタスク関連付けは組み合わせ可能；タスク 2 はレーン作成後にバインド"
+      },
+      {
+        "type": "system_event",
+        "content": "worktree.create.before/after が発出\n.tasks/task_1.json -> { status: \"in_progress\", worktree: \"auth-refactor\" }\n.tasks/task_2.json -> { status: \"in_progress\", worktree: \"ui-login\" }\n.worktrees/index.json 更新",
+        "annotation": "コントロールプレーンの状態が正規の状態として残る；フック式コンシューマーはライフサイクルイベントに反応できる"
+      },
+      {
+        "type": "tool_call",
+        "content": "worktree_run(name: \"auth-refactor\", command: \"pytest tests/auth -q\")\nworktree_run(name: \"ui-login\", command: \"npm test -- login\")",
+        "toolName": "worktree_run",
+        "annotation": "この教育用ランタイムでは、コマンドはレーンスコープの作業ディレクトリによってルーティングされる"
+      },
+      {
+        "type": "tool_call",
+        "content": "worktree_keep(name: \"ui-login\")\nworktree_remove(name: \"auth-refactor\", complete_task: true)\nworktree_events(limit: 10)",
+        "toolName": "worktree_manager",
+        "annotation": "クローズアウトは明示的なツール駆動の状態遷移：保持/削除の決定を混在させ、ライフサイクルイベントを一度に照会"
+      },
+      {
+        "type": "system_event",
+        "content": "ui-login の worktree.keep が発出\nauth-refactor の worktree.remove.before/after が発出\ntask #1 の task.completed が発出\n.worktrees/events.jsonl に追記",
+        "annotation": "ライフサイクル遷移が明示的なレコードになり、タスク/worktree ファイルが信頼できる情報源として残る"
+      },
+      {
+        "type": "assistant_text",
+        "content": "タスクボードが調整を担い、worktree が分離を担います。並行トラックはクリーンで監査可能な状態に保たれます。",
+        "annotation": "1つのボードで調整し、必要な場合のみレーンで分離し、ライフサイクルイベントからオプションのポリシー/監査副作用を実行"
+      }
+    ]
+  },
   "steps": [
     {
       "type": "user_message",

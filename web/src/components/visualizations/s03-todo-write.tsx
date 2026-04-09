@@ -3,6 +3,7 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { useSteppedVisualization } from "@/hooks/useSteppedVisualization";
 import { StepControls } from "@/components/visualizations/shared/step-controls";
+import { useTranslations } from "@/lib/i18n";
 
 // -- Task definitions --
 
@@ -75,7 +76,7 @@ const NAG_THRESHOLD = 3;
 const NAG_FIRES_PER_STEP = [false, false, false, true, false, false, false];
 
 // Step annotations
-const STEP_INFO = [
+const STEP_INFO_STATIC = [
   { title: "The Plan", desc: "TodoWrite gives the model a visible plan. All tasks start as pending." },
   { title: "Round 1 -- Idle", desc: "The model does work but doesn't touch its todos. The nag counter increments." },
   { title: "Round 2 -- Still Idle", desc: "Two rounds without progress. Pressure builds." },
@@ -232,7 +233,8 @@ export default function TodoWrite({ title }: { title?: string }) {
   const tasks = TASK_STATES[currentStep];
   const nagValue = NAG_TIMER_PER_STEP[currentStep];
   const nagFires = NAG_FIRES_PER_STEP[currentStep];
-  const stepInfo = STEP_INFO[currentStep];
+  const stepInfo = STEP_INFO_STATIC[currentStep];
+  const tv = useTranslations("viz_steps");
 
   const pendingTasks = tasks.filter((t) => t.status === "pending");
   const inProgressTasks = tasks.filter((t) => t.status === "in_progress");
@@ -315,8 +317,8 @@ export default function TodoWrite({ title }: { title?: string }) {
         onReset={reset}
         isPlaying={isPlaying}
         onToggleAutoPlay={toggleAutoPlay}
-        stepTitle={stepInfo.title}
-        stepDescription={stepInfo.desc}
+        stepTitle={tv(`s03_${currentStep}_title`) || stepInfo.title}
+        stepDescription={tv(`s03_${currentStep}_desc`) || stepInfo.desc}
       />
     </section>
   );

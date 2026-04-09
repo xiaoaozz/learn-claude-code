@@ -2,6 +2,90 @@
   "version": "s11",
   "title": "Autonomous Agents",
   "description": "Teammates self-govern with idle cycles and auto-claiming",
+  "zh": {
+    "description": "队友通过空闲周期和自动认领实现自治",
+    "steps": [
+      {
+        "type": "user_message",
+        "content": "实现完整的功能积压",
+        "annotation": "为自治团队执行设计的开放性任务"
+      },
+      {
+        "type": "tool_call",
+        "content": "create_tasks([\n  { title: \"用户认证\", status: \"open\" },\n  { title: \"仪表盘 UI\", status: \"open\" },\n  { title: \"API 限流\", status: \"open\" },\n  { title: \"集成测试\", status: \"open\" }\n])",
+        "toolName": "task_manager",
+        "annotation": "创建无负责人的任务——可供自动认领"
+      },
+      {
+        "type": "tool_result",
+        "content": "已在共享看板上创建 4 个任务",
+        "toolName": "task_manager",
+        "annotation": "未分配的任务对所有队友可见"
+      },
+      {
+        "type": "system_event",
+        "content": "[frontend-dev] 触发空闲周期\n  1. 检查收件箱 -> 0 条消息\n  2. 轮询任务看板 -> 找到无主任务 #2 \"仪表盘 UI\"\n  3. 自动认领任务 #2\n  4. 状态：空闲 -> 工作中",
+        "annotation": "空闲周期：检查收件箱、轮询任务、自动认领、恢复工作"
+      },
+      {
+        "type": "system_event",
+        "content": "[backend-dev] 触发空闲周期\n  1. 检查收件箱 -> 0 条消息\n  2. 轮询任务看板 -> 找到无主任务 #1 \"用户认证\"\n  3. 自动认领任务 #1\n  4. 状态：空闲 -> 工作中",
+        "annotation": "多个队友并发认领不同任务"
+      },
+      {
+        "type": "system_event",
+        "content": "[tester] 触发空闲周期\n  1. 检查收件箱 -> 0 条消息\n  2. 轮询任务看板 -> 任务 #4 被 #1、#2、#3 阻塞\n  3. 没有可认领的任务\n  4. 状态：空闲（30 秒后重试）",
+        "annotation": "基于超时的轮询防止忙等待"
+      },
+      {
+        "type": "assistant_text",
+        "content": "团队正在自组织：frontend-dev 认领了仪表盘 UI，backend-dev 认领了用户认证。Tester 正在等待依赖项完成。",
+        "annotation": "轮询 + 超时使队友实现自治——无需逐一分配任务"
+      }
+    ]
+  },
+  "ja": {
+    "description": "アイドルサイクルと自動クレームでチームメイトが自律管理する",
+    "steps": [
+      {
+        "type": "user_message",
+        "content": "機能バックログ全体を実装してください",
+        "annotation": "自律チーム実行のためのオープンエンドなタスク"
+      },
+      {
+        "type": "tool_call",
+        "content": "create_tasks([\n  { title: \"ユーザー認証\", status: \"open\" },\n  { title: \"ダッシュボード UI\", status: \"open\" },\n  { title: \"API レート制限\", status: \"open\" },\n  { title: \"統合テスト\", status: \"open\" }\n])",
+        "toolName": "task_manager",
+        "annotation": "オーナーなしでタスクを作成——自動クレーム可能"
+      },
+      {
+        "type": "tool_result",
+        "content": "共有ボードに 4 つのタスクを作成しました",
+        "toolName": "task_manager",
+        "annotation": "未割り当てタスクが全チームメイトに表示される"
+      },
+      {
+        "type": "system_event",
+        "content": "[frontend-dev] アイドルサイクル発動\n  1. 受信ボックス確認 -> 0 件\n  2. タスクボードをポーリング -> 未所有タスク #2 \"ダッシュボード UI\" を発見\n  3. タスク #2 を自動クレーム\n  4. ステータス：アイドル -> 作業中",
+        "annotation": "アイドルサイクル：受信ボックス確認、タスクポーリング、自動クレーム、作業再開"
+      },
+      {
+        "type": "system_event",
+        "content": "[backend-dev] アイドルサイクル発動\n  1. 受信ボックス確認 -> 0 件\n  2. タスクボードをポーリング -> 未所有タスク #1 \"ユーザー認証\" を発見\n  3. タスク #1 を自動クレーム\n  4. ステータス：アイドル -> 作業中",
+        "annotation": "複数のチームメイトが異なるタスクを同時にクレーム"
+      },
+      {
+        "type": "system_event",
+        "content": "[tester] アイドルサイクル発動\n  1. 受信ボックス確認 -> 0 件\n  2. タスクボードをポーリング -> タスク #4 は #1、#2、#3 でブロック\n  3. クレーム可能なタスクなし\n  4. ステータス：アイドル（30 秒後にリトライ）",
+        "annotation": "タイムアウトベースのポーリングがビジーウェイトを防止"
+      },
+      {
+        "type": "assistant_text",
+        "content": "チームが自己組織化しています：frontend-dev がダッシュボード UI をクレーム、backend-dev がユーザー認証をクレーム。Tester は依存関係が解消されるのを待っています。",
+        "annotation": "ポーリング + タイムアウトによりチームメイトが自律化——各タスクを個別に割り当てる必要がない"
+      }
+    ]
+  },
   "steps": [
     {
       "type": "user_message",

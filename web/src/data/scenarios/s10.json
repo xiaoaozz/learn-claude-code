@@ -2,6 +2,78 @@
   "version": "s10",
   "title": "Team Protocols",
   "description": "Request-response protocols for shutdown and plan approval",
+  "zh": {
+    "description": "用于关闭和计划审批的请求-响应协议",
+    "steps": [
+      {
+        "type": "user_message",
+        "content": "工作完成了，优雅地关闭团队。",
+        "annotation": "不能直接杀线程——需要协调关闭"
+      },
+      {
+        "type": "tool_call",
+        "content": "shutdown_request(\n  teammate: \"backend-dev\",\n  request_id: \"req_abc123\"\n)",
+        "toolName": "shutdown_teammate",
+        "annotation": "request_id 将请求与响应关联"
+      },
+      {
+        "type": "system_event",
+        "content": "[关闭 FSM] req_abc123：待定\n  Leader -> backend-dev 收件箱：\n  { type: \"shutdown_request\", request_id: \"req_abc123\" }",
+        "annotation": "FSM 追踪状态：待定 -> 批准 | 拒绝"
+      },
+      {
+        "type": "system_event",
+        "content": "[backend-dev] 收到关闭请求 req_abc123\n  当前任务：无（空闲中）\n  决定：批准\n  -> lead 收件箱：{ type: \"shutdown_response\", request_id: \"req_abc123\", approve: true }",
+        "annotation": "队友根据自身状态决定是否批准"
+      },
+      {
+        "type": "system_event",
+        "content": "[关闭 FSM] req_abc123：已批准\n  backend-dev 线程已停止\n  状态：空闲 -> 已关闭",
+        "annotation": "同样的 request_id 模式也适用于计划审批"
+      },
+      {
+        "type": "assistant_text",
+        "content": "backend-dev 已优雅关闭。同样的 request_id + FSM 模式可处理计划审批：队友提交计划，leader 通过关联的 request_id 批准或拒绝。",
+        "annotation": "一种模式（request_id 关联），两种应用（关闭 + 计划审批）"
+      }
+    ]
+  },
+  "ja": {
+    "description": "シャットダウンと計画承認のためのリクエスト・レスポンスプロトコル",
+    "steps": [
+      {
+        "type": "user_message",
+        "content": "作業が終わりました。チームをグレースフルにシャットダウンしてください。",
+        "annotation": "スレッドを単純に kill できない——協調シャットダウンが必要"
+      },
+      {
+        "type": "tool_call",
+        "content": "shutdown_request(\n  teammate: \"backend-dev\",\n  request_id: \"req_abc123\"\n)",
+        "toolName": "shutdown_teammate",
+        "annotation": "request_id がリクエストとレスポンスを関連付ける"
+      },
+      {
+        "type": "system_event",
+        "content": "[シャットダウン FSM] req_abc123：保留中\n  リード -> backend-dev 受信ボックス：\n  { type: \"shutdown_request\", request_id: \"req_abc123\" }",
+        "annotation": "FSM が状態を追跡：保留中 -> 承認 | 拒否"
+      },
+      {
+        "type": "system_event",
+        "content": "[backend-dev] シャットダウンリクエスト req_abc123 を受信\n  現在のタスク：なし（アイドル）\n  決定：承認\n  -> リード受信ボックス：{ type: \"shutdown_response\", request_id: \"req_abc123\", approve: true }",
+        "annotation": "チームメイトが自身の状態に基づいて承認を決定"
+      },
+      {
+        "type": "system_event",
+        "content": "[シャットダウン FSM] req_abc123：承認済み\n  backend-dev スレッドを停止\n  ステータス：アイドル -> シャットダウン",
+        "annotation": "同じ request_id パターンが計画承認にも機能する"
+      },
+      {
+        "type": "assistant_text",
+        "content": "backend-dev がグレースフルにシャットダウンしました。同じ request_id + FSM パターンが計画承認にも機能します：チームメイトが計画を提出し、リードが関連付けられた request_id で承認/拒否します。",
+        "annotation": "1つのパターン（request_id 相関）、2つの用途（シャットダウン + 計画承認）"
+      }
+    ]
+  },
   "steps": [
     {
       "type": "user_message",

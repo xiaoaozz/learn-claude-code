@@ -3,6 +3,7 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { useSteppedVisualization } from "@/hooks/useSteppedVisualization";
 import { StepControls } from "@/components/visualizations/shared/step-controls";
+import { useTranslations } from "@/lib/i18n";
 
 interface SkillEntry {
   name: string;
@@ -61,7 +62,7 @@ const SKILLS: SkillEntry[] = [
 const TOKEN_STATES = [120, 120, 440, 440, 780, 780];
 const MAX_TOKEN_DISPLAY = 1000;
 
-const STEPS = [
+const STEPS_STATIC = [
   {
     title: "Layer 1: Compact Summaries",
     description:
@@ -103,8 +104,9 @@ export default function SkillLoading({ title }: { title?: string }) {
     reset,
     isPlaying,
     toggleAutoPlay,
-  } = useSteppedVisualization({ totalSteps: STEPS.length, autoPlayInterval: 2500 });
+  } = useSteppedVisualization({ totalSteps: STEPS_STATIC.length, autoPlayInterval: 2500 });
 
+  const tv = useTranslations("viz_steps");
   const tokenCount = TOKEN_STATES[currentStep];
   const highlightedSkill = currentStep >= 1 && currentStep <= 3 ? 0 : currentStep >= 4 ? 1 : -1;
   const showFirstContent = currentStep >= 2;
@@ -397,8 +399,8 @@ export default function SkillLoading({ title }: { title?: string }) {
             onReset={reset}
             isPlaying={isPlaying}
             onToggleAutoPlay={toggleAutoPlay}
-            stepTitle={STEPS[currentStep].title}
-            stepDescription={STEPS[currentStep].description}
+            stepTitle={tv(`s05_${currentStep}_title`) || STEPS_STATIC[currentStep].title}
+            stepDescription={tv(`s05_${currentStep}_desc`) || STEPS_STATIC[currentStep].description}
           />
         </div>
       </div>

@@ -2,7 +2,7 @@
 
 import { useRef, useEffect, useState } from "react";
 import { AnimatePresence } from "framer-motion";
-import { useTranslations } from "@/lib/i18n";
+import { useTranslations, useLocale } from "@/lib/i18n";
 import { useSimulator } from "@/hooks/useSimulator";
 import { SimulatorControls } from "./simulator-controls";
 import { SimulatorMessage } from "./simulator-message";
@@ -29,6 +29,8 @@ interface AgentLoopSimulatorProps {
 
 export function AgentLoopSimulator({ version }: AgentLoopSimulatorProps) {
   const t = useTranslations("version");
+  const tSim = useTranslations("sim");
+  const locale = useLocale();
   const [scenario, setScenario] = useState<Scenario | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -39,7 +41,19 @@ export function AgentLoopSimulator({ version }: AgentLoopSimulatorProps) {
     }
   }, [version]);
 
-  const sim = useSimulator(scenario?.steps ?? []);
+  // Apply locale-specific translation if available
+  const localizedScenario = (() => {
+    if (!scenario) return null;
+    if (locale !== "en") {
+      const localeData = (scenario as any)[locale];
+      if (localeData) {
+        return { ...scenario, ...localeData };
+      }
+    }
+    return scenario;
+  })();
+
+  const sim = useSimulator(localizedScenario?.steps ?? []);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -50,13 +64,13 @@ export function AgentLoopSimulator({ version }: AgentLoopSimulatorProps) {
     }
   }, [sim.visibleSteps.length]);
 
-  if (!scenario) return null;
+  if (!localizedScenario) return null;
 
   return (
     <section>
       <h2 className="mb-2 text-xl font-semibold">{t("simulator")}</h2>
       <p className="mb-4 text-sm text-[var(--color-text-secondary)]">
-        {scenario.description}
+        {localizedScenario.description}
       </p>
 
       <div className="overflow-hidden rounded-xl border border-[var(--color-border)]">
@@ -81,7 +95,7 @@ export function AgentLoopSimulator({ version }: AgentLoopSimulatorProps) {
         >
           {sim.visibleSteps.length === 0 && (
             <div className="flex flex-1 items-center justify-center text-sm text-[var(--color-text-secondary)]">
-              Press Play or Step to begin
+              {tSim("begin_hint")}
             </div>
           )}
           <AnimatePresence mode="popLayout">

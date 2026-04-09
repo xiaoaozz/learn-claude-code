@@ -3,6 +3,7 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { useSteppedVisualization } from "@/hooks/useSteppedVisualization";
 import { StepControls } from "@/components/visualizations/shared/step-controls";
+import { useTranslations } from "@/lib/i18n";
 
 interface MessageBlock {
   id: string;
@@ -33,7 +34,7 @@ const SUMMARY_BLOCK: MessageBlock = {
   color: "bg-teal-500",
 };
 
-const STEPS = [
+const STEPS_STATIC = [
   {
     title: "Parent Context",
     description:
@@ -75,9 +76,10 @@ export default function SubagentIsolation({ title }: { title?: string }) {
     reset,
     isPlaying,
     toggleAutoPlay,
-  } = useSteppedVisualization({ totalSteps: STEPS.length, autoPlayInterval: 2500 });
+  } = useSteppedVisualization({ totalSteps: STEPS_STATIC.length, autoPlayInterval: 2500 });
 
-  // Derive what to show in each container based on step
+  const tv = useTranslations("viz_steps");
+  const step = STEPS_STATIC[currentStep];
   const parentMessages: MessageBlock[] = (() => {
     const base = [...PARENT_BASE_MESSAGES];
     if (currentStep >= 5) {
@@ -298,8 +300,8 @@ export default function SubagentIsolation({ title }: { title?: string }) {
             onReset={reset}
             isPlaying={isPlaying}
             onToggleAutoPlay={toggleAutoPlay}
-            stepTitle={STEPS[currentStep].title}
-            stepDescription={STEPS[currentStep].description}
+            stepTitle={tv(`s04_${currentStep}_title`) || step.title}
+            stepDescription={tv(`s04_${currentStep}_desc`) || step.description}
           />
         </div>
       </div>

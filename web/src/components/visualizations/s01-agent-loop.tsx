@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useSteppedVisualization } from "@/hooks/useSteppedVisualization";
 import { StepControls } from "@/components/visualizations/shared/step-controls";
 import { useSvgPalette } from "@/hooks/useDarkMode";
+import { useTranslations } from "@/lib/i18n";
 
 // -- Flowchart node definitions --
 
@@ -87,7 +88,7 @@ const MESSAGES_PER_STEP: (MessageBlock | null)[][] = [
 
 // -- Step annotations --
 
-const STEP_INFO = [
+const STEP_INFO_STATIC = [
   { title: "The While Loop", desc: "Every agent is a while loop that keeps calling the model until it says 'stop'." },
   { title: "User Input", desc: "The loop starts when the user sends a message." },
   { title: "Call the Model", desc: "Send all messages to the LLM. It sees everything and decides what to do." },
@@ -147,6 +148,7 @@ export default function AgentLoop({ title }: { title?: string }) {
   } = useSteppedVisualization({ totalSteps: 7, autoPlayInterval: 2500 });
 
   const palette = useSvgPalette();
+  const tv = useTranslations("viz_steps");
   const activeNodes = ACTIVE_NODES_PER_STEP[currentStep];
   const activeEdges = ACTIVE_EDGES_PER_STEP[currentStep];
 
@@ -158,7 +160,7 @@ export default function AgentLoop({ title }: { title?: string }) {
     }
   }
 
-  const stepInfo = STEP_INFO[currentStep];
+  const stepInfo = STEP_INFO_STATIC[currentStep];
 
   return (
     <section className="min-h-[500px] space-y-4">
@@ -408,8 +410,8 @@ export default function AgentLoop({ title }: { title?: string }) {
         onReset={reset}
         isPlaying={isPlaying}
         onToggleAutoPlay={toggleAutoPlay}
-        stepTitle={stepInfo.title}
-        stepDescription={stepInfo.desc}
+        stepTitle={tv(`s01_${currentStep}_title`) || stepInfo.title}
+        stepDescription={tv(`s01_${currentStep}_desc`) || stepInfo.desc}
       />
     </section>
   );

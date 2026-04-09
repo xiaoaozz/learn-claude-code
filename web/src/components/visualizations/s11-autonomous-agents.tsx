@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import { useSteppedVisualization } from "@/hooks/useSteppedVisualization";
 import { StepControls } from "@/components/visualizations/shared/step-controls";
 import { useSvgPalette } from "@/hooks/useDarkMode";
+import { useTranslations } from "@/lib/i18n";
 
 // -- FSM states and their layout positions (diamond: idle top, poll right, claim bottom, work left) --
 type Phase = "idle" | "poll" | "claim" | "work";
@@ -225,6 +226,7 @@ export default function AutonomousAgents({ title }: { title?: string }) {
   const vis = useSteppedVisualization({ totalSteps: STEPS.length, autoPlayInterval: 2500 });
   const step = vis.currentStep;
   const palette = useSvgPalette();
+  const tv = useTranslations("viz_steps");
 
   const agentStates = getAgentStates(step);
   const tasks = getTaskStates(step);
@@ -456,8 +458,8 @@ export default function AutonomousAgents({ title }: { title?: string }) {
             onReset={vis.reset}
             isPlaying={vis.isPlaying}
             onToggleAutoPlay={vis.toggleAutoPlay}
-            stepTitle={STEPS[step].title}
-            stepDescription={STEPS[step].desc}
+            stepTitle={tv(`s11_${step}_title`) || STEPS[step].title}
+            stepDescription={tv(`s11_${step}_desc`) || STEPS[step].desc}
           />
         </div>
       </div>

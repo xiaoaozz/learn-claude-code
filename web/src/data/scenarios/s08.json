@@ -2,6 +2,114 @@
   "version": "s08",
   "title": "Background Tasks",
   "description": "Agent executes long-running tasks in background threads",
+  "zh": {
+    "description": "agent 在后台线程中执行长时运行的任务",
+    "steps": [
+      {
+        "type": "user_message",
+        "content": "运行测试套件，同时修复代码检查错误",
+        "annotation": "两个可以并发运行的任务"
+      },
+      {
+        "type": "assistant_text",
+        "content": "我将在后台启动测试，同时并行修复代码检查问题。",
+        "annotation": "agent 识别到并发执行的机会"
+      },
+      {
+        "type": "tool_call",
+        "content": "pytest tests/ -v --timeout=300",
+        "toolName": "background_task",
+        "annotation": "BackgroundManager 为长时运行的测试套件创建线程"
+      },
+      {
+        "type": "system_event",
+        "content": "[BackgroundManager] 线程已创建：task_001\n运行：pytest tests/ -v --timeout=300\n状态：进行中",
+        "annotation": "线程独立运行——主循环继续"
+      },
+      {
+        "type": "tool_result",
+        "content": "后台任务已启动：task_001",
+        "toolName": "background_task",
+        "annotation": "控制权立即返回给 agent"
+      },
+      {
+        "type": "tool_call",
+        "content": "ruff check --fix .",
+        "toolName": "bash",
+        "annotation": "agent 在后台测试运行期间修复代码检查问题"
+      },
+      {
+        "type": "tool_result",
+        "content": "已修复 5 个文件中的 12 个代码检查错误",
+        "toolName": "bash",
+        "annotation": "代码检查与测试并发修复完成"
+      },
+      {
+        "type": "system_event",
+        "content": "[通知] 后台任务 task_001 已完成\n结果：47 个测试通过，2 个失败\n失败：test_auth.py::test_token_expiry, test_api.py::test_rate_limit",
+        "annotation": "后台线程通过通知队列通知主循环"
+      },
+      {
+        "type": "assistant_text",
+        "content": "代码检查已修复。测试完成：47 个通过，2 个失败。现在修复失败的测试。",
+        "annotation": "线程 + 队列实现非阻塞执行，支持并行工作"
+      }
+    ]
+  },
+  "ja": {
+    "description": "バックグラウンドスレッドで長時間タスクを実行するエージェント",
+    "steps": [
+      {
+        "type": "user_message",
+        "content": "テストスイートを実行し、その間にリントエラーを修正してください",
+        "annotation": "並行して実行できる 2 つのタスク"
+      },
+      {
+        "type": "assistant_text",
+        "content": "テストをバックグラウンドで開始し、並行してリントを修正します。",
+        "annotation": "エージェントが並行実行の機会を認識"
+      },
+      {
+        "type": "tool_call",
+        "content": "pytest tests/ -v --timeout=300",
+        "toolName": "background_task",
+        "annotation": "BackgroundManager が長時間テストスイート用のスレッドを生成"
+      },
+      {
+        "type": "system_event",
+        "content": "[BackgroundManager] スレッド生成：task_001\n実行中：pytest tests/ -v --timeout=300\nステータス：進行中",
+        "annotation": "スレッドが独立して実行中——メインループが継続"
+      },
+      {
+        "type": "tool_result",
+        "content": "バックグラウンドタスク開始：task_001",
+        "toolName": "background_task",
+        "annotation": "制御が即座にエージェントに戻る"
+      },
+      {
+        "type": "tool_call",
+        "content": "ruff check --fix .",
+        "toolName": "bash",
+        "annotation": "テストがバックグラウンドで実行中にリントを修正"
+      },
+      {
+        "type": "tool_result",
+        "content": "5 ファイルの 12 のリントエラーを修正しました",
+        "toolName": "bash",
+        "annotation": "テストと並行してリントを修正"
+      },
+      {
+        "type": "system_event",
+        "content": "[通知] バックグラウンドタスク task_001 が完了\n結果：47 テスト合格、2 テスト失敗\n失敗：test_auth.py::test_token_expiry, test_api.py::test_rate_limit",
+        "annotation": "バックグラウンドスレッドが通知キューでメインループに通知"
+      },
+      {
+        "type": "assistant_text",
+        "content": "リントが修正されました。テスト完了：47 合格、2 失敗。失敗したテストを修正します。",
+        "annotation": "スレッド + キューによるノンブロッキング実行で並列作業が可能"
+      }
+    ]
+  },
   "steps": [
     {
       "type": "user_message",

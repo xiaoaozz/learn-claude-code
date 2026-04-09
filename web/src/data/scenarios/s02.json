@@ -2,6 +2,94 @@
   "version": "s02",
   "title": "Tools",
   "description": "Agent with read, write, edit, and bash tools",
+  "zh": {
+    "description": "拥有读取、写入、编辑和 bash 工具的 agent",
+    "steps": [
+      {
+        "type": "user_message",
+        "content": "在 hello.py 中添加一个叫 greet(name) 的函数",
+        "annotation": "用户请求修改代码"
+      },
+      {
+        "type": "assistant_text",
+        "content": "先让我读取当前文件。",
+        "annotation": "模型选择 read_file 而不是 bash cat"
+      },
+      {
+        "type": "tool_call",
+        "content": "hello.py",
+        "toolName": "read_file",
+        "annotation": "专用的读取工具提供更简洁的文件访问"
+      },
+      {
+        "type": "tool_result",
+        "content": "print(\"Hello, World!\")",
+        "toolName": "read_file",
+        "annotation": "文件内容返回给模型"
+      },
+      {
+        "type": "tool_call",
+        "content": "hello.py\n---\ndef greet(name):\n    print(f\"Hello, {name}!\")\n\ngreet(\"World\")",
+        "toolName": "write_file",
+        "annotation": "write_file 替换整个文件内容"
+      },
+      {
+        "type": "tool_result",
+        "content": "文件写入成功",
+        "toolName": "write_file",
+        "annotation": "写入已确认"
+      },
+      {
+        "type": "assistant_text",
+        "content": "我已更新 hello.py，添加了接受 name 参数的 greet(name) 函数。",
+        "annotation": "4 个工具优于 1 个：每个工具都有清晰、专注的用途"
+      }
+    ]
+  },
+  "ja": {
+    "description": "読み取り、書き込み、編集、bash ツールを持つエージェント",
+    "steps": [
+      {
+        "type": "user_message",
+        "content": "hello.py に greet(name) という関数を追加してください",
+        "annotation": "ユーザーがコード変更を依頼"
+      },
+      {
+        "type": "assistant_text",
+        "content": "まず現在のファイルを読み取ります。",
+        "annotation": "モデルが bash cat でなく read_file を選択"
+      },
+      {
+        "type": "tool_call",
+        "content": "hello.py",
+        "toolName": "read_file",
+        "annotation": "専用の読み取りツールがクリーンなファイルアクセスを提供"
+      },
+      {
+        "type": "tool_result",
+        "content": "print(\"Hello, World!\")",
+        "toolName": "read_file",
+        "annotation": "ファイル内容がモデルに返される"
+      },
+      {
+        "type": "tool_call",
+        "content": "hello.py\n---\ndef greet(name):\n    print(f\"Hello, {name}!\")\n\ngreet(\"World\")",
+        "toolName": "write_file",
+        "annotation": "write_file がファイル全体の内容を置き換える"
+      },
+      {
+        "type": "tool_result",
+        "content": "ファイルの書き込みに成功しました",
+        "toolName": "write_file",
+        "annotation": "書き込みを確認"
+      },
+      {
+        "type": "assistant_text",
+        "content": "name パラメータを受け取る greet(name) 関数で hello.py を更新しました。",
+        "annotation": "4ツールは1ツールより優れている：各ツールには明確で集中した目的がある"
+      }
+    ]
+  },
   "steps": [
     {
       "type": "user_message",

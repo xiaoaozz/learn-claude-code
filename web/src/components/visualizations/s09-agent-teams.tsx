@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useSteppedVisualization } from "@/hooks/useSteppedVisualization";
 import { StepControls } from "@/components/visualizations/shared/step-controls";
 import { useSvgPalette } from "@/hooks/useDarkMode";
+import { useTranslations } from "@/lib/i18n";
 
 // -- Layout constants --
 const SVG_W = 560;
@@ -36,7 +37,7 @@ function trayCenter(id: string) {
 }
 
 // Step configuration
-const STEPS = [
+const STEPS_STATIC = [
   { title: "The Team", desc: "Teams use a leader-worker pattern. Each teammate has a file-based mailbox inbox." },
   { title: "Lead Assigns Work", desc: "Communication is async: write a message to the recipient's .jsonl inbox file." },
   { title: "Read Inbox", desc: "Teammates poll their inbox before each LLM call. New messages become context." },
@@ -45,6 +46,9 @@ const STEPS = [
   { title: "Feedback Loop", desc: "The mailbox pattern supports any communication topology: linear, broadcast, round-robin." },
   { title: "File-Based Coordination", desc: "No shared memory, no locks. All coordination through append-only files. Simple, robust, debuggable." },
 ];
+
+// Keep original STEPS for backward compat
+const STEPS = STEPS_STATIC;
 
 // Helper: determine which agent glows at each step
 function agentGlows(agentId: string, step: number): boolean {
@@ -135,6 +139,7 @@ export default function AgentTeams({ title }: { title?: string }) {
   const vis = useSteppedVisualization({ totalSteps: STEPS.length, autoPlayInterval: 2500 });
   const step = vis.currentStep;
   const palette = useSvgPalette();
+  const tv = useTranslations("viz_steps");
 
   return (
     <section className="space-y-4">
@@ -383,8 +388,8 @@ export default function AgentTeams({ title }: { title?: string }) {
             onReset={vis.reset}
             isPlaying={vis.isPlaying}
             onToggleAutoPlay={vis.toggleAutoPlay}
-            stepTitle={STEPS[step].title}
-            stepDescription={STEPS[step].desc}
+            stepTitle={tv(`s09_${step}_title`) || STEPS[step].title}
+            stepDescription={tv(`s09_${step}_desc`) || STEPS[step].desc}
           />
         </div>
       </div>

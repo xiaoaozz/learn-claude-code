@@ -3,6 +3,7 @@
 import { motion } from "framer-motion";
 import { useSteppedVisualization } from "@/hooks/useSteppedVisualization";
 import { StepControls } from "@/components/visualizations/shared/step-controls";
+import { useTranslations } from "@/lib/i18n";
 
 type TaskStatus = "pending" | "in_progress" | "completed";
 
@@ -158,6 +159,7 @@ function worktreeClass(state: WorktreeRow["state"]): string {
 export default function WorktreeTaskIsolation({ title }: { title?: string }) {
   const vis = useSteppedVisualization({ totalSteps: STEPS.length, autoPlayInterval: 2600 });
   const step = STEPS[vis.currentStep];
+  const tv = useTranslations("viz_steps");
 
   return (
     <section className="min-h-[500px] space-y-4">
@@ -257,8 +259,8 @@ export default function WorktreeTaskIsolation({ title }: { title?: string }) {
         </div>
 
         <div className="mt-4 rounded-md border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-800/60">
-          <div className="font-medium text-zinc-800 dark:text-zinc-100">{step.title}</div>
-          <div className="text-zinc-600 dark:text-zinc-300">{step.desc}</div>
+          <div className="font-medium text-zinc-800 dark:text-zinc-100">{tv(`s12_${vis.currentStep}_title`) || step.title}</div>
+          <div className="text-zinc-600 dark:text-zinc-300">{tv(`s12_${vis.currentStep}_desc`) || step.desc}</div>
         </div>
       </div>
 
@@ -270,8 +272,8 @@ export default function WorktreeTaskIsolation({ title }: { title?: string }) {
         onReset={vis.reset}
         isPlaying={vis.isPlaying}
         onToggleAutoPlay={vis.toggleAutoPlay}
-        stepTitle={step.title}
-        stepDescription={step.desc}
+        stepTitle={tv(`s12_${vis.currentStep}_title`) || step.title}
+        stepDescription={tv(`s12_${vis.currentStep}_desc`) || step.desc}
       />
     </section>
   );

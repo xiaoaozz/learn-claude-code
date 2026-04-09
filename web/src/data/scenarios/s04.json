@@ -2,6 +2,104 @@
   "version": "s04",
   "title": "Subagents",
   "description": "Agent spawns a subagent for isolated subtask execution",
+  "zh": {
+    "description": "agent 生成子代理执行隔离的子任务",
+    "steps": [
+      {
+        "type": "user_message",
+        "content": "重构计算器：拆分为模块并添加测试",
+        "annotation": "适合委派的复杂任务"
+      },
+      {
+        "type": "assistant_text",
+        "content": "我将把测试编写委派给子代理，同时自己处理重构工作。",
+        "annotation": "agent 决定使用 Task 工具拆分工作"
+      },
+      {
+        "type": "tool_call",
+        "content": "为 calc.py 编写单元测试，覆盖所有 4 个运算以及除零等边界情况",
+        "toolName": "task",
+        "annotation": "Task 工具生成一个拥有独立隔离上下文的子代理"
+      },
+      {
+        "type": "system_event",
+        "content": "[子代理已生成] 上下文：全新 messages[]，相同工具，限定范围的提示词",
+        "annotation": "子代理获得干净的上下文——不受父代理对话的干扰"
+      },
+      {
+        "type": "tool_result",
+        "content": "已创建 test_calc.py，包含 8 个测试用例，全部通过。",
+        "toolName": "task",
+        "annotation": "子代理完成后向父代理返回摘要"
+      },
+      {
+        "type": "tool_call",
+        "content": "calc.py -> calc/operations.py, calc/cli.py",
+        "toolName": "write_file",
+        "annotation": "父代理继续自己的任务：重构"
+      },
+      {
+        "type": "tool_result",
+        "content": "文件写入成功",
+        "toolName": "write_file",
+        "annotation": "模块已拆分"
+      },
+      {
+        "type": "assistant_text",
+        "content": "已重构为 calc/operations.py 和 calc/cli.py。测试由子代理编写，全部通过。",
+        "annotation": "上下文隔离防止了任务之间的混淆"
+      }
+    ]
+  },
+  "ja": {
+    "description": "エージェントが隔離されたサブタスク実行のためにサブエージェントを生成する",
+    "steps": [
+      {
+        "type": "user_message",
+        "content": "計算機をリファクタリング：モジュールに分割してテストを追加",
+        "annotation": "委任に適した複雑なタスク"
+      },
+      {
+        "type": "assistant_text",
+        "content": "リファクタリングは私が行い、テスト作成はサブエージェントに委任します。",
+        "annotation": "エージェントが Task ツールで作業を分割することを決定"
+      },
+      {
+        "type": "tool_call",
+        "content": "calc.py の全 4 演算とゼロ除算などのエッジケースをカバーするユニットテストを作成してください",
+        "toolName": "task",
+        "annotation": "Task ツールが独立した隔離コンテキストを持つサブエージェントを生成"
+      },
+      {
+        "type": "system_event",
+        "content": "[サブエージェント生成] コンテキスト：新規 messages[]、同一ツール、スコープ限定プロンプト",
+        "annotation": "サブエージェントはクリーンなコンテキストを取得——親の会話から混乱なし"
+      },
+      {
+        "type": "tool_result",
+        "content": "8つのテストケースを含む test_calc.py を作成しました。全て合格。",
+        "toolName": "task",
+        "annotation": "サブエージェントが完了して親にサマリーを返す"
+      },
+      {
+        "type": "tool_call",
+        "content": "calc.py -> calc/operations.py, calc/cli.py",
+        "toolName": "write_file",
+        "annotation": "親エージェントが自分のタスクを続行：リファクタリング"
+      },
+      {
+        "type": "tool_result",
+        "content": "ファイルの書き込みに成功しました",
+        "toolName": "write_file",
+        "annotation": "モジュールを分割"
+      },
+      {
+        "type": "assistant_text",
+        "content": "calc/operations.py と calc/cli.py にリファクタリングしました。テストはサブエージェントが作成し、全て合格しています。",
+        "annotation": "コンテキスト分離によりタスク間の混乱を防止"
+      }
+    ]
+  },
   "steps": [
     {
       "type": "user_message",

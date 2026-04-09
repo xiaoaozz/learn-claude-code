@@ -2,6 +2,104 @@
   "version": "s01",
   "title": "The Agent Loop",
   "description": "A minimal agent that uses only bash to accomplish tasks",
+  "zh": {
+    "description": "一个仅使用 bash 完成任务的最小化 agent",
+    "steps": [
+      {
+        "type": "user_message",
+        "content": "创建一个名为 hello.py 的文件，打印 'Hello, World!'",
+        "annotation": "用户向 agent 发送任务"
+      },
+      {
+        "type": "assistant_text",
+        "content": "我将使用 bash 为你创建该文件。",
+        "annotation": "模型决定使用唯一的工具：bash"
+      },
+      {
+        "type": "tool_call",
+        "content": "echo 'print(\"Hello, World!\")' > hello.py",
+        "toolName": "bash",
+        "annotation": "工具调用：模型生成一个 bash 命令"
+      },
+      {
+        "type": "tool_result",
+        "content": "",
+        "toolName": "bash",
+        "annotation": "bash 返回空输出（成功）"
+      },
+      {
+        "type": "assistant_text",
+        "content": "让我验证文件是否已正确创建。",
+        "annotation": "循环继续：模型看到结果后决定下一步"
+      },
+      {
+        "type": "tool_call",
+        "content": "cat hello.py",
+        "toolName": "bash",
+        "annotation": "再次调用 bash 以验证"
+      },
+      {
+        "type": "tool_result",
+        "content": "print(\"Hello, World!\")",
+        "toolName": "bash",
+        "annotation": "文件内容已确认"
+      },
+      {
+        "type": "assistant_text",
+        "content": "完成！我已创建 hello.py 并加入了打印语句。你可以通过 `python hello.py` 运行它。",
+        "annotation": "stop_reason != 'tool_use' -> 循环退出，agent 回应用户"
+      }
+    ]
+  },
+  "ja": {
+    "description": "bash のみを使用してタスクを実行するミニマルエージェント",
+    "steps": [
+      {
+        "type": "user_message",
+        "content": "'Hello, World!' を出力する hello.py ファイルを作成してください",
+        "annotation": "ユーザーがエージェントにタスクを送信"
+      },
+      {
+        "type": "assistant_text",
+        "content": "bash を使ってファイルを作成します。",
+        "annotation": "モデルが唯一のツール bash を使うことを決定"
+      },
+      {
+        "type": "tool_call",
+        "content": "echo 'print(\"Hello, World!\")' > hello.py",
+        "toolName": "bash",
+        "annotation": "ツール呼び出し：モデルが bash コマンドを生成"
+      },
+      {
+        "type": "tool_result",
+        "content": "",
+        "toolName": "bash",
+        "annotation": "bash が空の出力を返す（成功）"
+      },
+      {
+        "type": "assistant_text",
+        "content": "ファイルが正しく作成されたか確認します。",
+        "annotation": "ループ継続：モデルが結果を見て次のアクションを決定"
+      },
+      {
+        "type": "tool_call",
+        "content": "cat hello.py",
+        "toolName": "bash",
+        "annotation": "確認のための bash 呼び出し"
+      },
+      {
+        "type": "tool_result",
+        "content": "print(\"Hello, World!\")",
+        "toolName": "bash",
+        "annotation": "ファイル内容を確認"
+      },
+      {
+        "type": "assistant_text",
+        "content": "完了！hello.py を print 文で作成しました。`python hello.py` で実行できます。",
+        "annotation": "stop_reason != 'tool_use' -> ループ終了、エージェントがユーザーに返答"
+      }
+    ]
+  },
   "steps": [
     {
       "type": "user_message",

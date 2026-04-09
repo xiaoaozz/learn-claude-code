@@ -2,6 +2,104 @@
   "version": "s06",
   "title": "Compact",
   "description": "Agent compresses context when tokens exceed threshold",
+  "zh": {
+    "description": "agent 在 token 超出阈值时压缩上下文",
+    "steps": [
+      {
+        "type": "user_message",
+        "content": "分析此项目中的所有 Python 文件并逐一总结",
+        "annotation": "将产生大量上下文的任务"
+      },
+      {
+        "type": "tool_call",
+        "content": "find . -name '*.py' -type f",
+        "toolName": "bash",
+        "annotation": "查找所有要分析的文件"
+      },
+      {
+        "type": "tool_result",
+        "content": "./src/main.py\n./src/utils.py\n./src/models.py\n./tests/test_main.py\n... (还有 28 个文件)",
+        "toolName": "bash",
+        "annotation": "发现 32 个文件——读取所有文件将产生巨量上下文"
+      },
+      {
+        "type": "assistant_text",
+        "content": "我将系统地逐一读取并分析每个文件。",
+        "annotation": "agent 开始逐一处理文件"
+      },
+      {
+        "type": "tool_call",
+        "content": "./src/main.py",
+        "toolName": "read_file",
+        "annotation": "正在读取第 1/32 个文件..."
+      },
+      {
+        "type": "tool_result",
+        "content": "[... 450 行代码 ...]",
+        "toolName": "read_file",
+        "annotation": "大文件内容已添加到 messages[]"
+      },
+      {
+        "type": "system_event",
+        "content": "[ContextManager] Token 数量：148,231 / 150,000 阈值\n触发 3 层压缩：\n  1. 丢弃超过 1000 字符的 tool_result 内容 -> 替换为摘要\n  2. 合并连续的 assistant 轮次\n  3. 对最旧 50% 的对话进行摘要\n结果：148,231 -> 42,087 tokens",
+        "annotation": "接近限制时自动触发压缩"
+      },
+      {
+        "type": "assistant_text",
+        "content": "使用压缩后的上下文继续分析。文件 1-18 已被摘要，继续处理剩余文件。",
+        "annotation": "遗忘旧 tool result 使无限工作成为可能——agent 可以处理任意数量的文件"
+      }
+    ]
+  },
+  "ja": {
+    "description": "トークン数が閾値を超えたときにコンテキストを圧縮するエージェント",
+    "steps": [
+      {
+        "type": "user_message",
+        "content": "このプロジェクトの全 Python ファイルを分析してそれぞれ要約してください",
+        "annotation": "大量のコンテキストを生成するタスク"
+      },
+      {
+        "type": "tool_call",
+        "content": "find . -name '*.py' -type f",
+        "toolName": "bash",
+        "annotation": "分析対象のファイルを全て検索"
+      },
+      {
+        "type": "tool_result",
+        "content": "./src/main.py\n./src/utils.py\n./src/models.py\n./tests/test_main.py\n... (さらに 28 ファイル)",
+        "toolName": "bash",
+        "annotation": "32 ファイル発見——全て読むと膨大なコンテキストが生成される"
+      },
+      {
+        "type": "assistant_text",
+        "content": "各ファイルを体系的に読み取り分析します。",
+        "annotation": "エージェントがファイルを 1 つずつ処理開始"
+      },
+      {
+        "type": "tool_call",
+        "content": "./src/main.py",
+        "toolName": "read_file",
+        "annotation": "32 ファイル中 1 番目を読み取り中..."
+      },
+      {
+        "type": "tool_result",
+        "content": "[... 450 行のコード ...]",
+        "toolName": "read_file",
+        "annotation": "大きなファイル内容が messages[] に追加された"
+      },
+      {
+        "type": "system_event",
+        "content": "[ContextManager] トークン数：148,231 / 150,000 閾値\n3層圧縮を起動：\n  1. 1000文字超の tool_result を削除 -> 要約に置換\n  2. 連続する assistant ターンを統合\n  3. 最古 50% の会話を要約\n結果：148,231 -> 42,087 tokens",
+        "annotation": "限界に近づくと自動的に圧縮が発動"
+      },
+      {
+        "type": "assistant_text",
+        "content": "圧縮されたコンテキストで分析を続行。ファイル 1-18 は要約済み、残りのファイルに進みます。",
+        "annotation": "古い tool result を忘れることで無限の作業が可能になる"
+      }
+    ]
+  },
   "steps": [
     {
       "type": "user_message",

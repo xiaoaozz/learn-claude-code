@@ -2,6 +2,90 @@
   "version": "s09",
   "title": "Agent Teams",
   "description": "Persistent teammates communicate via JSONL inboxes",
+  "zh": {
+    "description": "持久化的队友通过 JSONL 收件箱进行通信",
+    "steps": [
+      {
+        "type": "user_message",
+        "content": "构建一个全栈应用：前端用 React，后端用 Python，并包含测试",
+        "annotation": "需要团队协作的大型任务"
+      },
+      {
+        "type": "tool_call",
+        "content": "spawn_teammate(\n  name: \"frontend-dev\",\n  role: \"React 专家\"\n)\nspawn_teammate(\n  name: \"backend-dev\",\n  role: \"Python API 专家\"\n)",
+        "toolName": "teammate_manager",
+        "annotation": "与子代理（s04）完成一次任务后消失不同，队友是持久的"
+      },
+      {
+        "type": "system_event",
+        "content": "[TeammateManager] 团队已创建：\n  .team/config.json 已写入\n  frontend-dev [空闲] - 独立线程，独立 agent 循环\n  backend-dev [空闲] - 独立线程，独立 agent 循环",
+        "annotation": "每个队友在独立线程中运行自己的 while(tool_use) 循环"
+      },
+      {
+        "type": "tool_call",
+        "content": "send_message(\n  to: \"backend-dev\",\n  content: \"构建用户 API：GET/POST /users\"\n)",
+        "toolName": "send_message",
+        "annotation": "消息追加到 .team/inbox/backend-dev.jsonl"
+      },
+      {
+        "type": "system_event",
+        "content": "[backend-dev] 正在检查收件箱... 1 条新消息\n  发件人：lead\n  内容：\"构建用户 API：GET/POST /users\"\n  （读取后收件箱已清空）",
+        "annotation": "收件箱采用读后清空机制：防止重复处理"
+      },
+      {
+        "type": "system_event",
+        "content": "[backend-dev -> frontend-dev] 通过收件箱回复：\n  \"API 已就绪：GET /users, POST /users, GET /users/:id\"\n  已写入 .team/inbox/frontend-dev.jsonl",
+        "annotation": "队友通过同一 JSONL 机制互相发消息"
+      },
+      {
+        "type": "assistant_text",
+        "content": "团队正通过基于文件的收件箱进行通信。每个队友有自己的 .jsonl 文件——追加发送，清空读取。",
+        "annotation": "JSONL 收件箱将发件方时间与收件方时间解耦"
+      }
+    ]
+  },
+  "ja": {
+    "description": "永続的なチームメイトが JSONL 受信ボックスを通じて通信する",
+    "steps": [
+      {
+        "type": "user_message",
+        "content": "フルスタックアプリを構築してください：フロントエンドは React、バックエンドは Python、テストも含めて",
+        "annotation": "チームコラボレーションが必要な大きなタスク"
+      },
+      {
+        "type": "tool_call",
+        "content": "spawn_teammate(\n  name: \"frontend-dev\",\n  role: \"React スペシャリスト\"\n)\nspawn_teammate(\n  name: \"backend-dev\",\n  role: \"Python API スペシャリスト\"\n)",
+        "toolName": "teammate_manager",
+        "annotation": "1タスクで消えるサブエージェント（s04）と違い、チームメイトは永続する"
+      },
+      {
+        "type": "system_event",
+        "content": "[TeammateManager] チームが作成されました：\n  .team/config.json を書き込み\n  frontend-dev [アイドル] - 独自スレッド、独自エージェントループ\n  backend-dev [アイドル] - 独自スレッド、独自エージェントループ",
+        "annotation": "各チームメイトが独自スレッドで while(tool_use) ループを実行"
+      },
+      {
+        "type": "tool_call",
+        "content": "send_message(\n  to: \"backend-dev\",\n  content: \"ユーザー API を構築：GET/POST /users\"\n)",
+        "toolName": "send_message",
+        "annotation": "メッセージが .team/inbox/backend-dev.jsonl に追加される"
+      },
+      {
+        "type": "system_event",
+        "content": "[backend-dev] 受信ボックスを確認中... 1 件の新着メッセージ\n  送信者：lead\n  内容：\"ユーザー API を構築：GET/POST /users\"\n  （読み取り後に受信ボックスをクリア）",
+        "annotation": "受信ボックスは読み取り後クリア：重複処理を防止"
+      },
+      {
+        "type": "system_event",
+        "content": "[backend-dev -> frontend-dev] 受信ボックスで返信：\n  \"API 準備完了：GET /users, POST /users, GET /users/:id\"\n  .team/inbox/frontend-dev.jsonl に書き込み",
+        "annotation": "チームメイトは同じ JSONL メカニズムで互いにメッセージを送る"
+      },
+      {
+        "type": "assistant_text",
+        "content": "チームはファイルベースの受信ボックスで通信しています。各チームメイトは独自の .jsonl ファイルを持ち、追加で送信、ドレインで読み取ります。",
+        "annotation": "JSONL 受信ボックスが送信者のタイミングと受信者のタイミングを分離"
+      }
+    ]
+  },
   "steps": [
     {
       "type": "user_message",

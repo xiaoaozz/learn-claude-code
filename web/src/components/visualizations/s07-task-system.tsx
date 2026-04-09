@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import { useSteppedVisualization } from "@/hooks/useSteppedVisualization";
 import { StepControls } from "@/components/visualizations/shared/step-controls";
 import { useDarkMode, useSvgPalette } from "@/hooks/useDarkMode";
+import { useTranslations } from "@/lib/i18n";
 
 type TaskStatus = "pending" | "in_progress" | "completed" | "blocked";
 
@@ -233,6 +234,7 @@ export default function TaskSystem({ title }: { title?: string }) {
   }, []);
 
   const stepInfo = STEP_INFO[currentStep];
+  const tv = useTranslations("viz_steps");
 
   return (
     <section className="min-h-[500px] space-y-4">
@@ -486,8 +488,8 @@ export default function TaskSystem({ title }: { title?: string }) {
         onReset={reset}
         isPlaying={isPlaying}
         onToggleAutoPlay={toggleAutoPlay}
-        stepTitle={stepInfo.title}
-        stepDescription={stepInfo.description}
+        stepTitle={tv(`s07_${currentStep}_title`) || stepInfo.title}
+        stepDescription={tv(`s07_${currentStep}_desc`) || stepInfo.description}
       />
     </section>
   );

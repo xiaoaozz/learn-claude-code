@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useSteppedVisualization } from "@/hooks/useSteppedVisualization";
 import { StepControls } from "@/components/visualizations/shared/step-controls";
 import { useDarkMode, useSvgPalette } from "@/hooks/useDarkMode";
+import { useTranslations } from "@/lib/i18n";
 
 interface StepInfo {
   title: string;
@@ -163,6 +164,7 @@ export default function BackgroundTasks({ title }: { title?: string }) {
   const palette = useSvgPalette();
 
   const stepInfo = STEP_INFO[currentStep];
+  const tv = useTranslations("viz_steps");
 
   const llmCallFraction = 0.82;
   const showLlmMarker = currentStep >= 5;
@@ -616,8 +618,8 @@ export default function BackgroundTasks({ title }: { title?: string }) {
         onReset={reset}
         isPlaying={isPlaying}
         onToggleAutoPlay={toggleAutoPlay}
-        stepTitle={stepInfo.title}
-        stepDescription={stepInfo.description}
+        stepTitle={tv(`s08_${currentStep}_title`) || stepInfo.title}
+        stepDescription={tv(`s08_${currentStep}_desc`) || stepInfo.description}
       />
     </section>
   );
