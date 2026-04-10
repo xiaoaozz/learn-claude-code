@@ -53,20 +53,20 @@ Identity re-injection after compression:
 def _loop(self, name, role, prompt):
     while True:
         # -- WORK PHASE --
-        messages = [{"role": "user", "content": prompt}]
+        messages = [{"role": "user", "content": prompt}]  # reset context each work cycle
         for _ in range(50):
             response = client.messages.create(...)
             if response.stop_reason != "tool_use":
-                break
+                break                      # natural stop
             # execute tools...
             if idle_requested:
-                break
+                break                      # explicit idle request
 
         # -- IDLE PHASE --
         self._set_status(name, "idle")
-        resume = self._idle_poll(name, messages)
+        resume = self._idle_poll(name, messages)  # wait for new work
         if not resume:
-            self._set_status(name, "shutdown")
+            self._set_status(name, "shutdown")   # 60s timeout -> exit
             return
         self._set_status(name, "working")
 ```
@@ -75,21 +75,21 @@ def _loop(self, name, role, prompt):
 
 ```python
 def _idle_poll(self, name, messages):
-    for _ in range(IDLE_TIMEOUT // POLL_INTERVAL):  # 60s / 5s = 12
+    for _ in range(IDLE_TIMEOUT // POLL_INTERVAL):  # 60s / 5s = 12 polls
         time.sleep(POLL_INTERVAL)
         inbox = BUS.read_inbox(name)
-        if inbox:
+        if inbox:                          # message arrived -> resume
             messages.append({"role": "user",
                 "content": f"<inbox>{inbox}</inbox>"})
             return True
         unclaimed = scan_unclaimed_tasks()
-        if unclaimed:
+        if unclaimed:                      # unblocked task found -> claim it
             claim_task(unclaimed[0]["id"], name)
             messages.append({"role": "user",
                 "content": f"<auto-claimed>Task #{unclaimed[0]['id']}: "
                            f"{unclaimed[0]['subject']}</auto-claimed>"})
             return True
-    return False  # timeout -> shutdown
+    return False                           # timed out -> shutdown
 ```
 
 3. Task board scanning: find pending, unowned, unblocked tasks.
@@ -99,9 +99,9 @@ def scan_unclaimed_tasks() -> list:
     unclaimed = []
     for f in sorted(TASKS_DIR.glob("task_*.json")):
         task = json.loads(f.read_text())
-        if (task.get("status") == "pending"
-                and not task.get("owner")
-                and not task.get("blockedBy")):
+        if (task.get("status") == "pending"      # not started
+                and not task.get("owner")         # not assigned
+                and not task.get("blockedBy")):   # no blocking deps
             unclaimed.append(task)
     return unclaimed
 ```
@@ -109,12 +109,12 @@ def scan_unclaimed_tasks() -> list:
 4. Identity re-injection: when context is too short (compression happened), insert an identity block.
 
 ```python
-if len(messages) <= 3:
+if len(messages) <= 3:                 # short history = compression happened
     messages.insert(0, {"role": "user",
         "content": f"<identity>You are '{name}', role: {role}, "
                    f"team: {team_name}. Continue your work.</identity>"})
     messages.insert(1, {"role": "assistant",
-        "content": f"I am {name}. Continuing."})
+        "content": f"I am {name}. Continuing."})  # anchor response
 ```
 
 ## What Changed From s10

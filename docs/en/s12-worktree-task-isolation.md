@@ -40,7 +40,7 @@ State machines:
 
 ```python
 TASKS.create("Implement auth refactor")
-# -> .tasks/task_1.json  status=pending  worktree=""
+# -> .tasks/task_1.json  status=pending  worktree=""  (no worktree yet)
 ```
 
 2. **Create a worktree and bind to the task.** Passing `task_id` auto-advances the task to `in_progress`.
@@ -56,16 +56,16 @@ The binding writes state to both sides:
 ```python
 def bind_worktree(self, task_id, worktree):
     task = self._load(task_id)
-    task["worktree"] = worktree
+    task["worktree"] = worktree            # link task -> worktree name
     if task["status"] == "pending":
-        task["status"] = "in_progress"
+        task["status"] = "in_progress"     # auto-advance task status
     self._save(task)
 ```
 
 3. **Run commands in the worktree.** `cwd` points to the isolated directory.
 
 ```python
-subprocess.run(command, shell=True, cwd=worktree_path,
+subprocess.run(command, shell=True, cwd=worktree_path,  # isolated cwd
                capture_output=True, text=True, timeout=300)
 ```
 
@@ -75,11 +75,11 @@ subprocess.run(command, shell=True, cwd=worktree_path,
 
 ```python
 def remove(self, name, force=False, complete_task=False):
-    self._run_git(["worktree", "remove", wt["path"]])
+    self._run_git(["worktree", "remove", wt["path"]])  # delete the directory
     if complete_task and wt.get("task_id") is not None:
-        self.tasks.update(wt["task_id"], status="completed")
-        self.tasks.unbind_worktree(wt["task_id"])
-        self.events.emit("task.completed", ...)
+        self.tasks.update(wt["task_id"], status="completed")  # auto-complete task
+        self.tasks.unbind_worktree(wt["task_id"])             # clear worktree link
+        self.events.emit("task.completed", ...)               # emit lifecycle event
 ```
 
 5. **Event stream.** Every lifecycle step emits to `.worktrees/events.jsonl`:

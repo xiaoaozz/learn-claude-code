@@ -82,12 +82,102 @@ function renderMarkdown(md: string): string {
   return String(result);
 }
 
+// ─── Split Markdown into H2 sections (PPT pages) ─────────────────────────────
+// Each ## heading becomes a page. Content before first ## is the "intro" page.
+// For the "How It Works" section, further split by numbered list items (1. 2. 3. 4.)
+// so each step becomes its own page.
+function splitMarkdownIntoPptPages(rawMd: string): string[] {
+  // Remove the h1 title line and the breadcrumb line
+  const cleaned = rawMd
+    .replace(/^#[^#].*\n/, "")   // remove h1
+    .replace(/^`\[.*\n/m, "");   // remove breadcrumb
+
+  // Split by ## headings (keep the heading in the resulting block)
+  const sections = cleaned.split(/(?=^## )/m).filter((s) => s.trim());
+
+  const pages: string[] = [];
+
+  for (const section of sections) {
+    const headingMatch = section.match(/^## (.+)/);
+    const heading = headingMatch?.[1]?.trim() ?? "";
+
+    // For "How It Works" / "工作原理" / "仕組み" sections, split by numbered steps
+    const isHowItWorks =
+      /^How It Works|^工作原理|^仕組み/.test(heading);
+
+    if (isHowItWorks) {
+      // Split at numbered list items: lines starting with "\n1. ", "\n2. " etc.
+      // We keep the h2 heading in the first chunk
+      const lines = section.split("\n");
+      let currentPage: string[] = [];
+      let stepCount = 0;
+
+      for (const line of lines) {
+        const isNumberedStep = /^\d+\./.test(line.trimStart());
+        if (isNumberedStep && currentPage.length > 0) {
+          // Check if this starts a new top-level numbered item (not continuation)
+          // If current page already has numbered content, flush it
+          if (stepCount > 0) {
+            pages.push(currentPage.join("\n"));
+            // Start new page with the section heading for context
+            currentPage = [`## ${heading}`, ""];
+          }
+          stepCount++;
+        }
+        currentPage.push(line);
+      }
+      if (currentPage.length > 0 && currentPage.some((l) => l.trim())) {
+        pages.push(currentPage.join("\n"));
+      }
+    } else {
+      pages.push(section);
+    }
+  }
+
+  return pages.filter((p) => p.trim());
+}
+
+// ─── Post-process HTML (shared) ───────────────────────────────────────────────
+function postProcessHtml(html: string): string {
+  html = html.replace(
+    /<pre><code class="hljs language-(\w+)">/g,
+    '<pre class="code-block" data-language="$1"><code class="hljs language-$1">'
+  );
+  html = html.replace(
+    /<pre><code(?! class="hljs)([^>]*)>/g,
+    '<pre class="ascii-diagram"><code$1>'
+  );
+  html = html.replace(/<blockquote>/, '<blockquote class="hero-callout">');
+  html = html.replace(/<h1[^>]*>.*?<\/h1>\n?/s, "");
+  html = html.replace(
+    /<ol start="(\d+)">/g,
+    (_, start) => `<ol style="counter-reset:step-counter ${parseInt(start) - 1}">`
+  );
+  return html;
+}
+
+// ─── PPT sub-page animations ──────────────────────────────────────────────────
+const pptPageVariants = {
+  enter: (dir: number) => ({ x: dir > 0 ? "50%" : "-50%", opacity: 0 }),
+  center: { x: 0, opacity: 1 },
+  exit: (dir: number) => ({ x: dir < 0 ? "50%" : "-50%", opacity: 0 }),
+};
+
 // ─── Slide 1: Learning ───────────────────────────────────────────────────────
-function SlideLearn({ version }: { version: string }) {
+function SlideLearn({
+  version,
+  onNextSlide,
+}: {
+  version: string;
+  onNextSlide?: () => void;
+}) {
   const t = useTranslations("showcase");
   const tMeta = useTranslations("version_meta");
   const locale = useLocale();
   const meta = VERSION_META[version];
+
+  const [pptIndex, setPptIndex] = useState(0);
+  const [pptDir, setPptDir] = useState(0);
 
   // Prefer i18n translation; fall back to hardcoded English from VERSION_META
   const keyInsight = tMeta(`${version}_keyInsight`) || meta?.keyInsight;
@@ -103,82 +193,188 @@ function SlideLearn({ version }: { version: string }) {
         d.version === version && d.locale === "en"
     );
 
-  const rawHtml = docEntry
-    ? renderMarkdown((docEntry as { content: string }).content)
+  const rawContent = docEntry ? (docEntry as { content: string }).content : "";
+
+  // Split the Markdown into PPT pages
+  const pptPages = rawContent ? splitMarkdownIntoPptPages(rawContent) : [];
+  // Prepend a "cover/overview" page for keyInsight + coreAddition cards
+  const hasCoverCards = !!(keyInsight || coreAddition);
+  // Total pages = cover (if has cards) + content pages
+  const totalPages = (hasCoverCards ? 1 : 0) + pptPages.length;
+  const isCoverPage = hasCoverCards && pptIndex === 0;
+  const contentPageIndex = hasCoverCards ? pptIndex - 1 : pptIndex;
+
+  // Pre-render HTML for current content page
+  const currentHtml = !isCoverPage && pptPages[contentPageIndex]
+    ? postProcessHtml(renderMarkdown(pptPages[contentPageIndex]))
     : "";
 
-  // Apply the same post-processing as DocRenderer (fixes ol counters, code blocks, etc.)
-  function postProcessHtml(html: string): string {
-    html = html.replace(
-      /<pre><code class="hljs language-(\w+)">/g,
-      '<pre class="code-block" data-language="$1"><code class="hljs language-$1">'
-    );
-    html = html.replace(
-      /<pre><code(?! class="hljs)([^>]*)>/g,
-      '<pre class="ascii-diagram"><code$1>'
-    );
-    html = html.replace(/<blockquote>/, '<blockquote class="hero-callout">');
-    html = html.replace(/<h1[^>]*>.*?<\/h1>\n?/s, "");
-    html = html.replace(
-      /<ol start="(\d+)">/g,
-      (_, start) => `<ol style="counter-reset:step-counter ${parseInt(start) - 1}">`
-    );
-    return html;
-  }
+  // Reset PPT page on version change
+  useEffect(() => {
+    setPptIndex(0);
+    setPptDir(0);
+  }, [version]);
 
-  const cleanedHtml = rawHtml ? postProcessHtml(rawHtml) : "";
+  const goPptNext = useCallback(() => {
+    if (pptIndex < totalPages - 1) {
+      setPptDir(1);
+      setPptIndex((i) => i + 1);
+    }
+  }, [pptIndex, totalPages]);
+
+  const goPptPrev = useCallback(() => {
+    if (pptIndex > 0) {
+      setPptDir(-1);
+      setPptIndex((i) => i - 1);
+    }
+  }, [pptIndex]);
+
+  // Keyboard: left/right arrow keys control ppt pages when in learn slide
+  // At boundary, pass control back to parent
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      const tag = (e.target as HTMLElement)?.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA") return;
+      if (e.key === "ArrowRight") {
+        if (pptIndex < totalPages - 1) {
+          goPptNext();
+        } else {
+          onNextSlide?.();
+        }
+      } else if (e.key === "ArrowLeft") {
+        goPptPrev();
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [goPptNext, goPptPrev, pptIndex, totalPages, onNextSlide]);
 
   return (
-    <div className="mx-auto flex h-full w-full max-w-3xl flex-col gap-5 overflow-hidden px-6 py-6 sm:px-8">
-      {/* Section label */}
-      <div className="flex shrink-0 items-center gap-3">
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-100 text-blue-600 dark:bg-blue-900/40 dark:text-blue-400">
-          <BookOpen size={16} />
-        </div>
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-widest text-[var(--color-text-secondary)]">
-            01 / 03 — {t("learning")}
-          </p>
+    <div className="flex h-full w-full flex-col overflow-hidden">
+      {/* Section header */}
+      <div className="shrink-0 border-b border-[var(--color-border)] px-6 py-3 sm:px-8">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-100 text-blue-600 dark:bg-blue-900/40 dark:text-blue-400">
+              <BookOpen size={16} />
+            </div>
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-widest text-[var(--color-text-secondary)]">
+                01 / 03 — {t("learning")}
+              </p>
+            </div>
+          </div>
+          {/* PPT page indicator dots */}
+          {totalPages > 1 && (
+            <div className="flex items-center gap-1">
+              {Array.from({ length: totalPages }, (_, i) => (
+                <button
+                  key={i}
+                  onClick={() => {
+                    setPptDir(i > pptIndex ? 1 : -1);
+                    setPptIndex(i);
+                  }}
+                  className={cn(
+                    "rounded-full transition-all",
+                    i === pptIndex
+                      ? "h-2 w-5 bg-blue-500"
+                      : "h-2 w-2 bg-zinc-300 hover:bg-zinc-400 dark:bg-zinc-600 dark:hover:bg-zinc-400"
+                  )}
+                />
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
-      {/* Cards row */}
-      <div className="grid shrink-0 gap-3 sm:grid-cols-2">
-        {keyInsight && (
-          <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 dark:border-amber-900/40 dark:bg-amber-950/30">
-            <div className="mb-2 flex items-center gap-2">
-              <Lightbulb size={14} className="text-amber-600 dark:text-amber-400" />
-              <span className="text-xs font-semibold text-amber-800 dark:text-amber-300">
-                {t("key_insight")}
-              </span>
-            </div>
-            <p className="text-sm leading-relaxed text-amber-900 dark:text-amber-200/80">
-              {keyInsight}
-            </p>
-          </div>
-        )}
-        {coreAddition && (
-          <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 dark:border-emerald-900/40 dark:bg-emerald-950/30">
-            <div className="mb-2 flex items-center gap-2">
-              <Plus size={14} className="text-emerald-600 dark:text-emerald-400" />
-              <span className="text-xs font-semibold text-emerald-800 dark:text-emerald-300">
-                {t("core_addition")}
-              </span>
-            </div>
-            <p className="text-sm leading-relaxed text-emerald-900 dark:text-emerald-200/80">
-              {coreAddition}
-            </p>
-          </div>
-        )}
+      {/* PPT Slide content (animated) */}
+      <div className="relative min-h-0 flex-1 overflow-hidden">
+        <AnimatePresence mode="wait" custom={pptDir}>
+          <motion.div
+            key={pptIndex}
+            custom={pptDir}
+            variants={pptPageVariants}
+            initial="enter"
+            animate="center"
+            exit="exit"
+            transition={{
+              x: { type: "spring", stiffness: 380, damping: 38 },
+              opacity: { duration: 0.15 },
+            }}
+            className="absolute inset-0 overflow-y-auto px-6 py-5 sm:px-8"
+          >
+            {isCoverPage ? (
+              /* Cover page: keyInsight + coreAddition cards */
+              <div className="flex h-full flex-col justify-center gap-4">
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {keyInsight && (
+                    <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 dark:border-amber-900/40 dark:bg-amber-950/30">
+                      <div className="mb-2 flex items-center gap-2">
+                        <Lightbulb size={14} className="text-amber-600 dark:text-amber-400" />
+                        <span className="text-xs font-semibold text-amber-800 dark:text-amber-300">
+                          {t("key_insight")}
+                        </span>
+                      </div>
+                      <p className="text-sm leading-relaxed text-amber-900 dark:text-amber-200/80">
+                        {keyInsight}
+                      </p>
+                    </div>
+                  )}
+                  {coreAddition && (
+                    <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 dark:border-emerald-900/40 dark:bg-emerald-950/30">
+                      <div className="mb-2 flex items-center gap-2">
+                        <Plus size={14} className="text-emerald-600 dark:text-emerald-400" />
+                        <span className="text-xs font-semibold text-emerald-800 dark:text-emerald-300">
+                          {t("core_addition")}
+                        </span>
+                      </div>
+                      <p className="text-sm leading-relaxed text-emerald-900 dark:text-emerald-200/80">
+                        {coreAddition}
+                      </p>
+                    </div>
+                  )}
+                </div>
+                {totalPages > 1 && (
+                  <p className="mt-2 text-center text-xs text-[var(--color-text-secondary)]">
+                    → {t("ppt_next_hint") || "press → to read content"}
+                  </p>
+                )}
+              </div>
+            ) : (
+              /* Content page: rendered Markdown section */
+              currentHtml && (
+                <div
+                  className="prose-custom"
+                  dangerouslySetInnerHTML={{ __html: currentHtml }}
+                />
+              )
+            )}
+          </motion.div>
+        </AnimatePresence>
       </div>
 
-      {/* Scrollable doc */}
-      {cleanedHtml && (
-        <div className="min-h-0 flex-1 overflow-y-auto rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-secondary)] px-5 py-4">
-          <div
-            className="prose-custom"
-            dangerouslySetInnerHTML={{ __html: cleanedHtml }}
-          />
+      {/* Bottom navigation bar */}
+      {totalPages > 1 && (
+        <div className="shrink-0 flex items-center justify-between border-t border-[var(--color-border)] bg-[var(--color-bg-secondary)] px-6 py-2 sm:px-8">
+          <button
+            onClick={goPptPrev}
+            disabled={pptIndex === 0}
+            className="flex items-center gap-1 rounded-md px-3 py-1.5 text-xs text-[var(--color-text-secondary)] transition-colors hover:bg-zinc-100 hover:text-zinc-700 disabled:opacity-30 dark:hover:bg-zinc-800 dark:hover:text-zinc-200"
+          >
+            <ChevronLeft size={14} />
+            {t("prev_page") || "Prev"}
+          </button>
+          <span className="font-mono text-xs text-[var(--color-text-secondary)]">
+            {pptIndex + 1} / {totalPages}
+          </span>
+          <button
+            onClick={goPptNext}
+            disabled={pptIndex === totalPages - 1}
+            className="flex items-center gap-1 rounded-md px-3 py-1.5 text-xs text-[var(--color-text-secondary)] transition-colors hover:bg-zinc-100 hover:text-zinc-700 disabled:opacity-30 dark:hover:bg-zinc-800 dark:hover:text-zinc-200"
+          >
+            {t("next_page") || "Next"}
+            <ChevronRight size={14} />
+          </button>
         </div>
       )}
     </div>
@@ -192,7 +388,7 @@ function SlideViz({ version }: { version: string }) {
   const VizComponent = vizComponents[version];
 
   return (
-    <div className="flex h-full w-full flex-col overflow-hidden">
+    <div className="flex w-full flex-col">
       {/* Section header */}
       <div className="shrink-0 border-b border-[var(--color-border)] px-6 py-4 sm:px-8">
         <div className="flex items-center gap-3">
@@ -207,8 +403,8 @@ function SlideViz({ version }: { version: string }) {
         </div>
       </div>
 
-      {/* Viz content */}
-      <div className="min-h-0 flex-1 overflow-y-auto px-6 py-4 sm:px-8">
+      {/* Viz content — no scroll, let the container grow to fit all content */}
+      <div className="px-6 py-4 sm:px-8">
         {VizComponent ? (
           <Suspense
             fallback={
@@ -384,8 +580,17 @@ interface ShowcasePageProps {
 export function ShowcasePPT({ version }: ShowcasePageProps) {
   const t = useTranslations("showcase");
   const tSession = useTranslations("sessions");
+  const tMeta = useTranslations("version_meta");
+  const tLayers = useTranslations("layer_labels");
   const locale = useLocale();
   const meta = VERSION_META[version];
+
+  // i18n-aware title / subtitle / layer label
+  const sessionTitle = tSession(version) || meta?.title;
+  const sessionSubtitle = tMeta(`${version}_subtitle`) || meta?.subtitle;
+  const layerLabel = meta?.layer
+    ? tLayers(meta.layer) || LAYERS.find((l) => l.id === meta.layer)?.label
+    : null;
 
   const [slideIndex, setSlideIndex] = useState(0);
   const [direction, setDirection] = useState(0);
@@ -412,18 +617,23 @@ export function ShowcasePPT({ version }: ShowcasePageProps) {
     if (slideIndex > 0) goSlide(slideIndex - 1);
   }, [slideIndex, goSlide]);
 
-  // Keyboard navigation
+  // Keyboard navigation:
+  // - When on the Learn slide (index 0), arrow keys are handled by SlideLearn's PPT sub-pages
+  // - On Viz / Sim slides, arrow keys navigate between top-level slides
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       const tag = (e.target as HTMLElement)?.tagName;
       if (tag === "INPUT" || tag === "TEXTAREA") return;
-      if (e.key === "ArrowRight") goNext();
-      else if (e.key === "ArrowLeft") goPrev();
-      else if (e.key === "f" || e.key === "F") toggleFullscreen();
+      // Only handle top-level slide navigation when NOT on the learn slide
+      if (slideIndex !== 0) {
+        if (e.key === "ArrowRight") goNext();
+        else if (e.key === "ArrowLeft") goPrev();
+      }
+      if (e.key === "f" || e.key === "F") toggleFullscreen();
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [goNext, goPrev]);
+  }, [goNext, goPrev, slideIndex]);
 
   const toggleFullscreen = useCallback(() => {
     if (!document.fullscreenElement) {
@@ -460,7 +670,7 @@ export function ShowcasePPT({ version }: ShowcasePageProps) {
           </Link>
           <ChevronRight size={13} />
           <span className="font-mono text-xs">{version}</span>
-          <span>{tSession(version) || meta?.title}</span>
+          <span>{sessionTitle}</span>
         </div>
 
         {/* Version title row */}
@@ -469,17 +679,17 @@ export function ShowcasePPT({ version }: ShowcasePageProps) {
             {version}
           </span>
           <h1 className="text-2xl font-bold sm:text-3xl">
-            {tSession(version) || meta?.title}
+            {sessionTitle}
           </h1>
           {meta?.layer && (
             <LayerBadge layer={meta.layer}>
-              {LAYERS.find((l) => l.id === meta.layer)?.label}
+              {layerLabel}
             </LayerBadge>
           )}
         </div>
-        {meta?.subtitle && (
+        {sessionSubtitle && (
           <p className="mt-1 text-lg text-zinc-500 dark:text-zinc-400">
-            {meta.subtitle}
+            {sessionSubtitle}
           </p>
         )}
 
@@ -546,30 +756,55 @@ export function ShowcasePPT({ version }: ShowcasePageProps) {
       </div>
 
       {/* ── Slide content ───────────────────────────────────────────────── */}
-      <div
-        className="relative overflow-hidden rounded-b-xl border border-[var(--color-border)] bg-[var(--color-bg)]"
-        style={{ minHeight: "560px" }}
-      >
-        <AnimatePresence mode="wait" custom={direction}>
-          <motion.div
-            key={slideIndex}
-            custom={direction}
-            variants={slideVariants}
-            initial="enter"
-            animate="center"
-            exit="exit"
-            transition={{
-              x: { type: "spring", stiffness: 340, damping: 34 },
-              opacity: { duration: 0.18 },
-            }}
-            className="absolute inset-0 overflow-hidden"
-          >
-            {slideIndex === 0 && <SlideLearn version={version} />}
-            {slideIndex === 1 && <SlideViz version={version} />}
-            {slideIndex === 2 && <SlideSimulator version={version} />}
-          </motion.div>
-        </AnimatePresence>
-      </div>
+      {/* When viz tab is active, allow height to grow to fit all content (no scroll).
+          For learn/sim tabs, keep fixed height with absolute-positioned animation. */}
+      {slideIndex === 1 ? (
+        /* Viz slide — height follows content */
+        <div className="relative rounded-b-xl border border-[var(--color-border)] bg-[var(--color-bg)]">
+          <AnimatePresence mode="wait" custom={direction}>
+            <motion.div
+              key={slideIndex}
+              custom={direction}
+              variants={slideVariants}
+              initial="enter"
+              animate="center"
+              exit="exit"
+              transition={{
+                x: { type: "spring", stiffness: 340, damping: 34 },
+                opacity: { duration: 0.18 },
+              }}
+              className="w-full"
+            >
+              <SlideViz version={version} />
+            </motion.div>
+          </AnimatePresence>
+        </div>
+      ) : (
+        /* Learn / Sim slides — fixed height with inner scroll */
+        <div
+          className="relative overflow-hidden rounded-b-xl border border-[var(--color-border)] bg-[var(--color-bg)]"
+          style={{ minHeight: "560px" }}
+        >
+          <AnimatePresence mode="wait" custom={direction}>
+            <motion.div
+              key={slideIndex}
+              custom={direction}
+              variants={slideVariants}
+              initial="enter"
+              animate="center"
+              exit="exit"
+              transition={{
+                x: { type: "spring", stiffness: 340, damping: 34 },
+                opacity: { duration: 0.18 },
+              }}
+              className="absolute inset-0 overflow-hidden"
+            >
+              {slideIndex === 0 && <SlideLearn version={version} onNextSlide={goNext} />}
+              {slideIndex === 2 && <SlideSimulator version={version} />}
+            </motion.div>
+          </AnimatePresence>
+        </div>
+      )}
 
       {/* ── Bottom navigation ───────────────────────────────────────────── */}
       <div className="mt-4 flex items-center justify-between border-t border-[var(--color-border)] pt-4">

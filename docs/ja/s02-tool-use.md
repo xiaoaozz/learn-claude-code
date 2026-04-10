@@ -35,17 +35,17 @@ One lookup replaces any if/elif chain.
 
 ```python
 def safe_path(p: str) -> Path:
-    path = (WORKDIR / p).resolve()
-    if not path.is_relative_to(WORKDIR):
+    path = (WORKDIR / p).resolve()         # シンボリックリンクの解決とパストラバーサルを防止
+    if not path.is_relative_to(WORKDIR):   # ワークスペース外への脱出をブロック
         raise ValueError(f"Path escapes workspace: {p}")
     return path
 
 def run_read(path: str, limit: int = None) -> str:
     text = safe_path(path).read_text()
     lines = text.splitlines()
-    if limit and limit < len(lines):
+    if limit and limit < len(lines):       # オプショナルの行数制限を尊重
         lines = lines[:limit]
-    return "\n".join(lines)[:50000]
+    return "\n".join(lines)[:50000]        # 一度に最多50k文字を返す
 ```
 
 2. ディスパッチマップがツール名とハンドラを結びつける。
@@ -56,7 +56,7 @@ TOOL_HANDLERS = {
     "read_file":  lambda **kw: run_read(kw["path"], kw.get("limit")),
     "write_file": lambda **kw: run_write(kw["path"], kw["content"]),
     "edit_file":  lambda **kw: run_edit(kw["path"], kw["old_text"],
-                                        kw["new_text"]),
+                                        kw["new_text"]),  # 各ツールに1つのラムダ
 }
 ```
 
@@ -65,7 +65,7 @@ TOOL_HANDLERS = {
 ```python
 for block in response.content:
     if block.type == "tool_use":
-        handler = TOOL_HANDLERS.get(block.name)
+        handler = TOOL_HANDLERS.get(block.name)  # if/elifチェーンを一度のルックアップに置換
         output = handler(**block.input) if handler \
             else f"Unknown tool: {block.name}"
         results.append({

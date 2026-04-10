@@ -37,7 +37,7 @@ PARENT_TOOLS = CHILD_TOOLS + [
      "input_schema": {
          "type": "object",
          "properties": {"prompt": {"type": "string"}},
-         "required": ["prompt"],
+         "required": ["prompt"],  # 只需传入纯文本 prompt
      }},
 ]
 ```
@@ -46,7 +46,7 @@ PARENT_TOOLS = CHILD_TOOLS + [
 
 ```python
 def run_subagent(prompt: str) -> str:
-    sub_messages = [{"role": "user", "content": prompt}]
+    sub_messages = [{"role": "user", "content": prompt}]  # 全新上下文，不继承不污染
     for _ in range(30):  # safety limit
         response = client.messages.create(
             model=MODEL, system=SUBAGENT_SYSTEM,
@@ -55,7 +55,7 @@ def run_subagent(prompt: str) -> str:
         )
         sub_messages.append({"role": "assistant",
                              "content": response.content})
-        if response.stop_reason != "tool_use":
+        if response.stop_reason != "tool_use":  # subagent 完成
             break
         results = []
         for block in response.content:
@@ -68,7 +68,7 @@ def run_subagent(prompt: str) -> str:
         sub_messages.append({"role": "user", "content": results})
     return "".join(
         b.text for b in response.content if hasattr(b, "text")
-    ) or "(no summary)"
+    ) or "(no summary)"  # 只有最终文本返回给父 Agent
 ```
 
 Subagent 可能跑了 30+ 次工具调用, 但整个消息历史直接丢弃。父 Agent 收到的只是一段摘要文本, 作为普通 `tool_result` 返回。

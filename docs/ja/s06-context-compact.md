@@ -53,10 +53,10 @@ def micro_compact(messages: list) -> list:
         if msg["role"] == "user" and isinstance(msg.get("content"), list):
             for j, part in enumerate(msg["content"]):
                 if isinstance(part, dict) and part.get("type") == "tool_result":
-                    tool_results.append((i, j, part))
-    if len(tool_results) <= KEEP_RECENT:
+                    tool_results.append((i, j, part))  # 全ツール結果を収集
+    if len(tool_results) <= KEEP_RECENT:   # 少ない場合は形変不要
         return messages
-    for _, _, part in tool_results[:-KEEP_RECENT]:
+    for _, _, part in tool_results[:-KEEP_RECENT]:  # 古い結果を置換
         if len(part.get("content", "")) > 100:
             part["content"] = f"[Previous: used {tool_name}]"
     return messages
@@ -70,7 +70,7 @@ def auto_compact(messages: list) -> list:
     transcript_path = TRANSCRIPT_DIR / f"transcript_{int(time.time())}.jsonl"
     with open(transcript_path, "w") as f:
         for msg in messages:
-            f.write(json.dumps(msg, default=str) + "\n")
+            f.write(json.dumps(msg, default=str) + "\n")  # 完全な履歴をディスクに保存
     # LLM summarizes
     response = client.messages.create(
         model=MODEL,
@@ -81,7 +81,7 @@ def auto_compact(messages: list) -> list:
     )
     return [
         {"role": "user", "content": f"[Compressed]\n\n{response.content[0].text}"},
-    ]
+    ]  # 全履歴をサマリー1件に置換
 ```
 
 3. **第3層 -- manual compact**: `compact`ツールが同じ要約処理をオンデマンドでトリガーする。
@@ -91,13 +91,13 @@ def auto_compact(messages: list) -> list:
 ```python
 def agent_loop(messages: list):
     while True:
-        micro_compact(messages)                        # Layer 1
+        micro_compact(messages)                        # 第1層: 毎ターン無声に実行
         if estimate_tokens(messages) > THRESHOLD:
-            messages[:] = auto_compact(messages)       # Layer 2
+            messages[:] = auto_compact(messages)       # 第2層: 閾値超過時に発火
         response = client.messages.create(...)
         # ... tool execution ...
         if manual_compact:
-            messages[:] = auto_compact(messages)       # Layer 3
+            messages[:] = auto_compact(messages)       # 第3層: モデルが明示的に要求
 ```
 
 トランスクリプトがディスク上に完全な履歴を保持する。何も真に失われず、アクティブなコンテキストの外に移動されるだけ。

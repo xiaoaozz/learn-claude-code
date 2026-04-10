@@ -30,7 +30,7 @@
 1. ユーザーのプロンプトが最初のメッセージになる。
 
 ```python
-messages.append({"role": "user", "content": query})
+messages.append({"role": "user", "content": query})  # 会話の最初のメッセージとして追加
 ```
 
 2. メッセージとツール定義をLLMに送信する。
@@ -38,15 +38,15 @@ messages.append({"role": "user", "content": query})
 ```python
 response = client.messages.create(
     model=MODEL, system=SYSTEM, messages=messages,
-    tools=TOOLS, max_tokens=8000,
+    tools=TOOLS, max_tokens=8000,  # 完全な履歴とツールスキーマをLLMに送信
 )
 ```
 
 3. アシスタントのレスポンスを追加し、`stop_reason`を確認する。ツールが呼ばれなければ終了。
 
 ```python
-messages.append({"role": "assistant", "content": response.content})
-if response.stop_reason != "tool_use":
+messages.append({"role": "assistant", "content": response.content})  # アシスタントのターンを保持
+if response.stop_reason != "tool_use":  # モデルがツールを呼ばなければ終了
     return
 ```
 
@@ -55,21 +55,21 @@ if response.stop_reason != "tool_use":
 ```python
 results = []
 for block in response.content:
-    if block.type == "tool_use":
+    if block.type == "tool_use":              # テキストブロックはスキップ
         output = run_bash(block.input["command"])
         results.append({
             "type": "tool_result",
-            "tool_use_id": block.id,
+            "tool_use_id": block.id,          # リクエストIDと一致させる必要がある
             "content": output,
         })
-messages.append({"role": "user", "content": results})
+messages.append({"role": "user", "content": results})  # 結果をLLMに返す
 ```
 
 1つの関数にまとめると:
 
 ```python
 def agent_loop(query):
-    messages = [{"role": "user", "content": query}]
+    messages = [{"role": "user", "content": query}]  # 呼び出しのたびに新鮮な開始
     while True:
         response = client.messages.create(
             model=MODEL, system=SYSTEM, messages=messages,
@@ -77,7 +77,7 @@ def agent_loop(query):
         )
         messages.append({"role": "assistant", "content": response.content})
 
-        if response.stop_reason != "tool_use":
+        if response.stop_reason != "tool_use":  # ツール呼び出しが止まれば終了
             return
 
         results = []
@@ -89,7 +89,7 @@ def agent_loop(query):
                     "tool_use_id": block.id,
                     "content": output,
                 })
-        messages.append({"role": "user", "content": results})
+        messages.append({"role": "user", "content": results})  # ループの先頭に戻る
 ```
 
 これでエージェント全体が30行未満に収まる。本コースの残りはすべてこのループの上に積み重なる -- ループ自体は変わらない。

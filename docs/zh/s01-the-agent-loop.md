@@ -30,7 +30,7 @@
 1. 用户 prompt 作为第一条消息。
 
 ```python
-messages.append({"role": "user", "content": query})
+messages.append({"role": "user", "content": query})  # 初始化对话
 ```
 
 2. 将消息和工具定义一起发给 LLM。
@@ -38,15 +38,15 @@ messages.append({"role": "user", "content": query})
 ```python
 response = client.messages.create(
     model=MODEL, system=SYSTEM, messages=messages,
-    tools=TOOLS, max_tokens=8000,
+    tools=TOOLS, max_tokens=8000,  # 把完整历史 + 工具 schema 一起发给 LLM
 )
 ```
 
 3. 追加助手响应。检查 `stop_reason` -- 如果模型没有调用工具, 结束。
 
 ```python
-messages.append({"role": "assistant", "content": response.content})
-if response.stop_reason != "tool_use":
+messages.append({"role": "assistant", "content": response.content})  # 保留助手回合
+if response.stop_reason != "tool_use":  # 模型不再调用工具 -> 结束
     return
 ```
 
@@ -55,21 +55,21 @@ if response.stop_reason != "tool_use":
 ```python
 results = []
 for block in response.content:
-    if block.type == "tool_use":
+    if block.type == "tool_use":              # 跳过纯文本块
         output = run_bash(block.input["command"])
         results.append({
             "type": "tool_result",
-            "tool_use_id": block.id,
+            "tool_use_id": block.id,          # 必须与请求 id 匹配
             "content": output,
         })
-messages.append({"role": "user", "content": results})
+messages.append({"role": "user", "content": results})  # 结果送回 LLM
 ```
 
 组装为一个完整函数:
 
 ```python
 def agent_loop(query):
-    messages = [{"role": "user", "content": query}]
+    messages = [{"role": "user", "content": query}]  # 每次调用全新开始
     while True:
         response = client.messages.create(
             model=MODEL, system=SYSTEM, messages=messages,
@@ -77,7 +77,7 @@ def agent_loop(query):
         )
         messages.append({"role": "assistant", "content": response.content})
 
-        if response.stop_reason != "tool_use":
+        if response.stop_reason != "tool_use":  # 模型停止调用工具则退出
             return
 
         results = []
@@ -89,7 +89,7 @@ def agent_loop(query):
                     "tool_use_id": block.id,
                     "content": output,
                 })
-        messages.append({"role": "user", "content": results})
+        messages.append({"role": "user", "content": results})  # 回到循环顶部
 ```
 
 不到 30 行, 这就是整个 Agent。后面 11 个章节都在这个循环上叠加机制 -- 循环本身始终不变。

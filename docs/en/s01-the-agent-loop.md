@@ -30,7 +30,7 @@ One exit condition controls the entire flow. The loop runs until the model stops
 1. User prompt becomes the first message.
 
 ```python
-messages.append({"role": "user", "content": query})
+messages.append({"role": "user", "content": query})  # seed the conversation
 ```
 
 2. Send messages + tool definitions to the LLM.
@@ -38,15 +38,15 @@ messages.append({"role": "user", "content": query})
 ```python
 response = client.messages.create(
     model=MODEL, system=SYSTEM, messages=messages,
-    tools=TOOLS, max_tokens=8000,
+    tools=TOOLS, max_tokens=8000,  # send full history + tool schemas
 )
 ```
 
 3. Append the assistant response. Check `stop_reason` -- if the model didn't call a tool, we're done.
 
 ```python
-messages.append({"role": "assistant", "content": response.content})
-if response.stop_reason != "tool_use":
+messages.append({"role": "assistant", "content": response.content})  # keep assistant turn
+if response.stop_reason != "tool_use":  # model is done — no more tools
     return
 ```
 
@@ -55,21 +55,21 @@ if response.stop_reason != "tool_use":
 ```python
 results = []
 for block in response.content:
-    if block.type == "tool_use":
+    if block.type == "tool_use":              # skip text blocks
         output = run_bash(block.input["command"])
         results.append({
             "type": "tool_result",
-            "tool_use_id": block.id,
+            "tool_use_id": block.id,          # must match the request id
             "content": output,
         })
-messages.append({"role": "user", "content": results})
+messages.append({"role": "user", "content": results})  # feed results back
 ```
 
 Assembled into one function:
 
 ```python
 def agent_loop(query):
-    messages = [{"role": "user", "content": query}]
+    messages = [{"role": "user", "content": query}]  # start fresh each call
     while True:
         response = client.messages.create(
             model=MODEL, system=SYSTEM, messages=messages,
@@ -77,7 +77,7 @@ def agent_loop(query):
         )
         messages.append({"role": "assistant", "content": response.content})
 
-        if response.stop_reason != "tool_use":
+        if response.stop_reason != "tool_use":  # exit when model stops calling tools
             return
 
         results = []
@@ -89,7 +89,7 @@ def agent_loop(query):
                     "tool_use_id": block.id,
                     "content": output,
                 })
-        messages.append({"role": "user", "content": results})
+        messages.append({"role": "user", "content": results})  # loop back
 ```
 
 That's the entire agent in under 30 lines. Everything else in this course layers on top -- without changing the loop.

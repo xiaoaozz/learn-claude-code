@@ -53,10 +53,10 @@ def micro_compact(messages: list) -> list:
         if msg["role"] == "user" and isinstance(msg.get("content"), list):
             for j, part in enumerate(msg["content"]):
                 if isinstance(part, dict) and part.get("type") == "tool_result":
-                    tool_results.append((i, j, part))
-    if len(tool_results) <= KEEP_RECENT:
+                    tool_results.append((i, j, part))  # collect all tool results
+    if len(tool_results) <= KEEP_RECENT:   # enough room — nothing to do
         return messages
-    for _, _, part in tool_results[:-KEEP_RECENT]:
+    for _, _, part in tool_results[:-KEEP_RECENT]:  # replace older ones
         if len(part.get("content", "")) > 100:
             part["content"] = f"[Previous: used {tool_name}]"
     return messages
@@ -70,7 +70,7 @@ def auto_compact(messages: list) -> list:
     transcript_path = TRANSCRIPT_DIR / f"transcript_{int(time.time())}.jsonl"
     with open(transcript_path, "w") as f:
         for msg in messages:
-            f.write(json.dumps(msg, default=str) + "\n")
+            f.write(json.dumps(msg, default=str) + "\n")  # full history to disk
     # LLM summarizes
     response = client.messages.create(
         model=MODEL,
@@ -81,7 +81,7 @@ def auto_compact(messages: list) -> list:
     )
     return [
         {"role": "user", "content": f"[Compressed]\n\n{response.content[0].text}"},
-    ]
+    ]  # replace full history with a single summary message
 ```
 
 3. **Layer 3 -- manual compact**: The `compact` tool triggers the same summarization on demand.
@@ -91,13 +91,13 @@ def auto_compact(messages: list) -> list:
 ```python
 def agent_loop(messages: list):
     while True:
-        micro_compact(messages)                        # Layer 1
+        micro_compact(messages)                        # Layer 1: inline, every turn
         if estimate_tokens(messages) > THRESHOLD:
-            messages[:] = auto_compact(messages)       # Layer 2
+            messages[:] = auto_compact(messages)       # Layer 2: threshold-triggered
         response = client.messages.create(...)
         # ... tool execution ...
         if manual_compact:
-            messages[:] = auto_compact(messages)       # Layer 3
+            messages[:] = auto_compact(messages)       # Layer 3: model-requested
 ```
 
 Transcripts preserve full history on disk. Nothing is truly lost -- just moved out of active context.

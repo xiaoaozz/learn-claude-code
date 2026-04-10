@@ -37,21 +37,21 @@ Agent --[spawn A]--[spawn B]--[other work]----
 ```python
 class BackgroundManager:
     def __init__(self):
-        self.tasks = {}
-        self._notification_queue = []
-        self._lock = threading.Lock()
+        self.tasks = {}                    # task_id -> metadata
+        self._notification_queue = []      # completed results waiting to inject
+        self._lock = threading.Lock()      # thread-safe queue access
 ```
 
 2. `run()` starts a daemon thread and returns immediately.
 
 ```python
 def run(self, command: str) -> str:
-    task_id = str(uuid.uuid4())[:8]
+    task_id = str(uuid.uuid4())[:8]        # short unique id for tracking
     self.tasks[task_id] = {"status": "running", "command": command}
     thread = threading.Thread(
-        target=self._execute, args=(task_id, command), daemon=True)
+        target=self._execute, args=(task_id, command), daemon=True)  # daemon: auto-kill on main exit
     thread.start()
-    return f"Background task {task_id} started"
+    return f"Background task {task_id} started"  # returns immediately
 ```
 
 3. When the subprocess finishes, its result goes into the notification queue.
@@ -61,10 +61,10 @@ def _execute(self, task_id, command):
     try:
         r = subprocess.run(command, shell=True, cwd=WORKDIR,
             capture_output=True, text=True, timeout=300)
-        output = (r.stdout + r.stderr).strip()[:50000]
+        output = (r.stdout + r.stderr).strip()[:50000]  # cap output size
     except subprocess.TimeoutExpired:
         output = "Error: Timeout (300s)"
-    with self._lock:
+    with self._lock:                       # lock before touching shared queue
         self._notification_queue.append({
             "task_id": task_id, "result": output[:500]})
 ```
@@ -74,11 +74,11 @@ def _execute(self, task_id, command):
 ```python
 def agent_loop(messages: list):
     while True:
-        notifs = BG.drain_notifications()
+        notifs = BG.drain_notifications()  # collect completed background results
         if notifs:
             notif_text = "\n".join(
                 f"[bg:{n['task_id']}] {n['result']}" for n in notifs)
-            messages.append({"role": "user",
+            messages.append({"role": "user",   # inject before LLM sees context
                 "content": f"<background-results>\n{notif_text}\n"
                            f"</background-results>"})
         response = client.messages.create(...)

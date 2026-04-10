@@ -40,7 +40,7 @@ State machines:
 
 ```python
 TASKS.create("Implement auth refactor")
-# -> .tasks/task_1.json  status=pending  worktree=""
+# -> .tasks/task_1.json  status=pending  worktree=""  （まだworktreeなし）
 ```
 
 2. **worktreeを作成してタスクに紐付ける。** `task_id`を渡すと、タスクが自動的に`in_progress`に遷移する。
@@ -56,16 +56,16 @@ WORKTREES.create("auth-refactor", task_id=1)
 ```python
 def bind_worktree(self, task_id, worktree):
     task = self._load(task_id)
-    task["worktree"] = worktree
+    task["worktree"] = worktree            # タスク -> worktree名をリンク
     if task["status"] == "pending":
-        task["status"] = "in_progress"
+        task["status"] = "in_progress"     # タスクのステータスを自動進行
     self._save(task)
 ```
 
 3. **worktree内でコマンドを実行する。** `cwd`が分離ディレクトリを指す。
 
 ```python
-subprocess.run(command, shell=True, cwd=worktree_path,
+subprocess.run(command, shell=True, cwd=worktree_path,  # cwdが離隔ディレクトリを指す
                capture_output=True, text=True, timeout=300)
 ```
 
@@ -75,11 +75,11 @@ subprocess.run(command, shell=True, cwd=worktree_path,
 
 ```python
 def remove(self, name, force=False, complete_task=False):
-    self._run_git(["worktree", "remove", wt["path"]])
+    self._run_git(["worktree", "remove", wt["path"]])  # ディレクトリを削除
     if complete_task and wt.get("task_id") is not None:
-        self.tasks.update(wt["task_id"], status="completed")
-        self.tasks.unbind_worktree(wt["task_id"])
-        self.events.emit("task.completed", ...)
+        self.tasks.update(wt["task_id"], status="completed")  # タスクを自動完了
+        self.tasks.unbind_worktree(wt["task_id"])             # 紐付けを解除
+        self.events.emit("task.completed", ...)               # ライフサイクルイベントを発行
 ```
 
 5. **イベントストリーム。** ライフサイクルの各ステップが`.worktrees/events.jsonl`に記録される:

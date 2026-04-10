@@ -54,14 +54,14 @@ This task graph becomes the coordination backbone for everything after s07: back
 class TaskManager:
     def __init__(self, tasks_dir: Path):
         self.dir = tasks_dir
-        self.dir.mkdir(exist_ok=True)
+        self.dir.mkdir(exist_ok=True)   # create .tasks/ if absent
         self._next_id = self._max_id() + 1
 
     def create(self, subject, description=""):
         task = {"id": self._next_id, "subject": subject,
                 "status": "pending", "blockedBy": [],
-                "owner": ""}
-        self._save(task)
+                "owner": ""}             # new task starts unowned
+        self._save(task)                 # persisted immediately to disk
         self._next_id += 1
         return json.dumps(task, indent=2)
 ```
@@ -70,10 +70,10 @@ class TaskManager:
 
 ```python
 def _clear_dependency(self, completed_id):
-    for f in self.dir.glob("task_*.json"):
+    for f in self.dir.glob("task_*.json"):  # scan all tasks
         task = json.loads(f.read_text())
         if completed_id in task.get("blockedBy", []):
-            task["blockedBy"].remove(completed_id)
+            task["blockedBy"].remove(completed_id)  # unblock dependents
             self._save(task)
 ```
 
@@ -85,11 +85,11 @@ def update(self, task_id, status=None,
     task = self._load(task_id)
     if status:
         task["status"] = status
-        if status == "completed":
+        if status == "completed":           # propagate completion to graph
             self._clear_dependency(task_id)
-    if add_blocked_by:
+    if add_blocked_by:                      # wire new dependency edge
         task["blockedBy"] = list(set(task["blockedBy"] + add_blocked_by))
-    if remove_blocked_by:
+    if remove_blocked_by:                   # remove dependency edge
         task["blockedBy"] = [x for x in task["blockedBy"] if x not in remove_blocked_by]
     self._save(task)
 ```
@@ -101,7 +101,7 @@ TOOL_HANDLERS = {
     # ...base tools...
     "task_create": lambda **kw: TASKS.create(kw["subject"]),
     "task_update": lambda **kw: TASKS.update(kw["task_id"], kw.get("status")),
-    "task_list":   lambda **kw: TASKS.list_all(),
+    "task_list":   lambda **kw: TASKS.list_all(),  # LLM sees full graph
     "task_get":    lambda **kw: TASKS.get(kw["task_id"]),
 }
 ```

@@ -53,10 +53,10 @@ def micro_compact(messages: list) -> list:
         if msg["role"] == "user" and isinstance(msg.get("content"), list):
             for j, part in enumerate(msg["content"]):
                 if isinstance(part, dict) and part.get("type") == "tool_result":
-                    tool_results.append((i, j, part))
-    if len(tool_results) <= KEEP_RECENT:
+                    tool_results.append((i, j, part))  # 收集所有 tool result
+    if len(tool_results) <= KEEP_RECENT:   # 剩余不多，不需压缩
         return messages
-    for _, _, part in tool_results[:-KEEP_RECENT]:
+    for _, _, part in tool_results[:-KEEP_RECENT]:  # 替换较旧的结果
         if len(part.get("content", "")) > 100:
             part["content"] = f"[Previous: used {tool_name}]"
     return messages
@@ -70,7 +70,7 @@ def auto_compact(messages: list) -> list:
     transcript_path = TRANSCRIPT_DIR / f"transcript_{int(time.time())}.jsonl"
     with open(transcript_path, "w") as f:
         for msg in messages:
-            f.write(json.dumps(msg, default=str) + "\n")
+            f.write(json.dumps(msg, default=str) + "\n")  # 完整历史落盘
     # LLM summarizes
     response = client.messages.create(
         model=MODEL,
@@ -81,7 +81,7 @@ def auto_compact(messages: list) -> list:
     )
     return [
         {"role": "user", "content": f"[Compressed]\n\n{response.content[0].text}"},
-    ]
+    ]  # 用摘要替换全部历史
 ```
 
 3. **第三层 -- manual compact**: `compact` 工具按需触发同样的摘要机制。
@@ -91,13 +91,13 @@ def auto_compact(messages: list) -> list:
 ```python
 def agent_loop(messages: list):
     while True:
-        micro_compact(messages)                        # Layer 1
+        micro_compact(messages)                        # 第一层：每轮静默执行
         if estimate_tokens(messages) > THRESHOLD:
-            messages[:] = auto_compact(messages)       # Layer 2
+            messages[:] = auto_compact(messages)       # 第二层：阅数超限触发
         response = client.messages.create(...)
         # ... tool execution ...
         if manual_compact:
-            messages[:] = auto_compact(messages)       # Layer 3
+            messages[:] = auto_compact(messages)       # 第三层：模型主动请求
 ```
 
 完整历史通过 transcript 保存在磁盘上。信息没有真正丢失, 只是移出了活跃上下文。

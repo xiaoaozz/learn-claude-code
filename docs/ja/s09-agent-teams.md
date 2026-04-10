@@ -43,10 +43,10 @@ Communication:
 class TeammateManager:
     def __init__(self, team_dir: Path):
         self.dir = team_dir
-        self.dir.mkdir(exist_ok=True)
+        self.dir.mkdir(exist_ok=True)      # 初回起動時に .team/ を作成
         self.config_path = self.dir / "config.json"
-        self.config = self._load_config()
-        self.threads = {}
+        self.config = self._load_config()  # 名簿をロードまたは初期化
+        self.threads = {}                  # name -> スレッドのマッピング
 ```
 
 2. `spawn()`がチームメイトを作成し、そのエージェントループをスレッドで開始する。
@@ -55,10 +55,10 @@ class TeammateManager:
 def spawn(self, name: str, role: str, prompt: str) -> str:
     member = {"name": name, "role": role, "status": "working"}
     self.config["members"].append(member)
-    self._save_config()
+    self._save_config()                    # スレッド開始前に名簿を保存
     thread = threading.Thread(
         target=self._teammate_loop,
-        args=(name, role, prompt), daemon=True)
+        args=(name, role, prompt), daemon=True)  # daemon: メイン終了時に自動停止
     thread.start()
     return f"Spawned teammate '{name}' (role: {role})"
 ```
@@ -71,15 +71,15 @@ class MessageBus:
         msg = {"type": msg_type, "from": sender,
                "content": content, "timestamp": time.time()}
         if extra:
-            msg.update(extra)
+            msg.update(extra)              # プロトコルフィールドをマージ（request_idなど）
         with open(self.dir / f"{to}.jsonl", "a") as f:
-            f.write(json.dumps(msg) + "\n")
+            f.write(json.dumps(msg) + "\n")  # 追記のみ—上書きしない
 
     def read_inbox(self, name):
         path = self.dir / f"{name}.jsonl"
         if not path.exists(): return "[]"
         msgs = [json.loads(l) for l in path.read_text().strip().splitlines() if l]
-        path.write_text("")  # drain
+        path.write_text("")  # drain—読み取り後にクリア
         return json.dumps(msgs, indent=2)
 ```
 
@@ -89,15 +89,15 @@ class MessageBus:
 def _teammate_loop(self, name, role, prompt):
     messages = [{"role": "user", "content": prompt}]
     for _ in range(50):
-        inbox = BUS.read_inbox(name)
+        inbox = BUS.read_inbox(name)       # LLM呼び出し前にインボックスをドレイン
         if inbox != "[]":
             messages.append({"role": "user",
                 "content": f"<inbox>{inbox}</inbox>"})
         response = client.messages.create(...)
         if response.stop_reason != "tool_use":
-            break
+            break                          # 自然な完了
         # execute tools, append results...
-    self._find_member(name)["status"] = "idle"
+    self._find_member(name)["status"] = "idle"  # 退出後にアイドルにマーク
 ```
 
 ## s08からの変更点

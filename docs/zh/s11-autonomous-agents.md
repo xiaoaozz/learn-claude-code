@@ -53,20 +53,20 @@ Identity re-injection after compression:
 def _loop(self, name, role, prompt):
     while True:
         # -- WORK PHASE --
-        messages = [{"role": "user", "content": prompt}]
+        messages = [{"role": "user", "content": prompt}]  # 每个工作周期重置上下文
         for _ in range(50):
             response = client.messages.create(...)
             if response.stop_reason != "tool_use":
-                break
+                break                      # 自然停止
             # execute tools...
             if idle_requested:
-                break
+                break                      # 主动转入空闲
 
         # -- IDLE PHASE --
         self._set_status(name, "idle")
-        resume = self._idle_poll(name, messages)
+        resume = self._idle_poll(name, messages)  # 等待新工作
         if not resume:
-            self._set_status(name, "shutdown")
+            self._set_status(name, "shutdown")   # 60 秒超时 -> 退出
             return
         self._set_status(name, "working")
 ```
@@ -75,15 +75,15 @@ def _loop(self, name, role, prompt):
 
 ```python
 def _idle_poll(self, name, messages):
-    for _ in range(IDLE_TIMEOUT // POLL_INTERVAL):  # 60s / 5s = 12
+    for _ in range(IDLE_TIMEOUT // POLL_INTERVAL):  # 60s / 5s = 12 轮询问
         time.sleep(POLL_INTERVAL)
         inbox = BUS.read_inbox(name)
-        if inbox:
+        if inbox:                          # 收到消息 -> 恢复工作
             messages.append({"role": "user",
                 "content": f"<inbox>{inbox}</inbox>"})
             return True
         unclaimed = scan_unclaimed_tasks()
-        if unclaimed:
+        if unclaimed:                      # 发现可认领任务 -> 认领
             claim_task(unclaimed[0]["id"], name)
             messages.append({"role": "user",
                 "content": f"<auto-claimed>Task #{unclaimed[0]['id']}: "
@@ -99,9 +99,9 @@ def scan_unclaimed_tasks() -> list:
     unclaimed = []
     for f in sorted(TASKS_DIR.glob("task_*.json")):
         task = json.loads(f.read_text())
-        if (task.get("status") == "pending"
-                and not task.get("owner")
-                and not task.get("blockedBy")):
+        if (task.get("status") == "pending"      # 未开始
+                and not task.get("owner")         # 无 owner
+                and not task.get("blockedBy")):   # 没有阻塞依赖
             unclaimed.append(task)
     return unclaimed
 ```
@@ -109,12 +109,12 @@ def scan_unclaimed_tasks() -> list:
 4. 身份重注入: 上下文过短 (说明发生了压缩) 时, 在开头插入身份块。
 
 ```python
-if len(messages) <= 3:
+if len(messages) <= 3:                 # 历史过短，说明发生了压缩
     messages.insert(0, {"role": "user",
         "content": f"<identity>You are '{name}', role: {role}, "
                    f"team: {team_name}. Continue your work.</identity>"})
     messages.insert(1, {"role": "assistant",
-        "content": f"I am {name}. Continuing."})
+        "content": f"I am {name}. Continuing."})  # 键入助手确认语句
 ```
 
 ## 相对 s10 的变更

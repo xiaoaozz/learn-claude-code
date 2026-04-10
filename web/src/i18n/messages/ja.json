@@ -40,17 +40,17 @@
   },
   "sessions": {
     "s01": "エージェントループ",
-    "s02": "ツール",
-    "s03": "TodoWrite",
+    "s02": "ツール分配",
+    "s03": "TodoWrite 計画",
     "s04": "サブエージェント",
-    "s05": "スキル",
+    "s05": "スキルロード",
     "s06": "コンテキスト圧縮",
     "s07": "タスクシステム",
     "s08": "バックグラウンドタスク",
     "s09": "エージェントチーム",
     "s10": "チームプロトコル",
     "s11": "自律エージェント",
-    "s12": "Worktree + タスク分離"
+    "s12": "Worktree タスク分離"
   },
   "layer_labels": {
     "tools": "ツールと実行",
@@ -258,9 +258,24 @@
     "select_task": "タスクを選択してショーケースを開始",
     "ready_to_record": "録画準備完了",
     "all_tasks": "全タスク",
-    "visualization_title": "ダイナミック可視化"
+    "visualization_title": "ダイナミック可視化",
+    "prev_page": "前のページ",
+    "next_page": "次のページ",
+    "ppt_next_hint": "→ でコンテンツを読む"
   },
   "version_meta": {
+    "s01_subtitle": "Bashだけで十分",
+    "s02_subtitle": "ツールにハンドラーを1つ",
+    "s03_subtitle": "実行前に計画",
+    "s04_subtitle": "サブタスクごとにクリーンなコンテキスト",
+    "s05_subtitle": "オンデマンドロード",
+    "s06_subtitle": "三層圧縮",
+    "s07_subtitle": "タスクグラフ＋依存関係",
+    "s08_subtitle": "バックグラウンドスレッド＋通知",
+    "s09_subtitle": "チームメイト＋メールボックス",
+    "s10_subtitle": "統一通信ルール",
+    "s11_subtitle": "ボードをスキャンしタスクをクレーム",
+    "s12_subtitle": "ディレクトリで分離",
     "s01_keyInsight": "最小エージェントカーネルは while ループ + 1つのツール",
     "s01_coreAddition": "シングルツール エージェントループ",
     "s02_keyInsight": "ループは変わらない。新しいツールはディスパッチマップに登録するだけ",

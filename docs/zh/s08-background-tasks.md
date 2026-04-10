@@ -37,21 +37,21 @@ Agent --[spawn A]--[spawn B]--[other work]----
 ```python
 class BackgroundManager:
     def __init__(self):
-        self.tasks = {}
-        self._notification_queue = []
-        self._lock = threading.Lock()
+        self.tasks = {}                    # task_id -> 元数据
+        self._notification_queue = []      # 完成结果等待注入
+        self._lock = threading.Lock()      # 保护共享队列的线程锁
 ```
 
 2. `run()` 启动守护线程, 立即返回。
 
 ```python
 def run(self, command: str) -> str:
-    task_id = str(uuid.uuid4())[:8]
+    task_id = str(uuid.uuid4())[:8]        # 短唯一 ID 用于追踪
     self.tasks[task_id] = {"status": "running", "command": command}
     thread = threading.Thread(
-        target=self._execute, args=(task_id, command), daemon=True)
+        target=self._execute, args=(task_id, command), daemon=True)  # daemon: 主进程退出时自动止
     thread.start()
-    return f"Background task {task_id} started"
+    return f"Background task {task_id} started"  # 立即返回
 ```
 
 3. 子进程完成后, 结果进入通知队列。
@@ -61,10 +61,10 @@ def _execute(self, task_id, command):
     try:
         r = subprocess.run(command, shell=True, cwd=WORKDIR,
             capture_output=True, text=True, timeout=300)
-        output = (r.stdout + r.stderr).strip()[:50000]
+        output = (r.stdout + r.stderr).strip()[:50000]  # 单次最多 50k 字符
     except subprocess.TimeoutExpired:
         output = "Error: Timeout (300s)"
-    with self._lock:
+    with self._lock:                       # 加锁再写共享队列
         self._notification_queue.append({
             "task_id": task_id, "result": output[:500]})
 ```
@@ -74,11 +74,11 @@ def _execute(self, task_id, command):
 ```python
 def agent_loop(messages: list):
     while True:
-        notifs = BG.drain_notifications()
+        notifs = BG.drain_notifications()  # 收集已完成的后台结果
         if notifs:
             notif_text = "\n".join(
                 f"[bg:{n['task_id']}] {n['result']}" for n in notifs)
-            messages.append({"role": "user",
+            messages.append({"role": "user",   # 在 LLM 看到之前注入
                 "content": f"<background-results>\n{notif_text}\n"
                            f"</background-results>"})
         response = client.messages.create(...)

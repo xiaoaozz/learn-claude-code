@@ -51,20 +51,20 @@ skills/
 class SkillLoader:
     def __init__(self, skills_dir: Path):
         self.skills = {}
-        for f in sorted(skills_dir.rglob("SKILL.md")):
+        for f in sorted(skills_dir.rglob("SKILL.md")):  # 递归发现所有 skill
             text = f.read_text()
             meta, body = self._parse_frontmatter(text)
-            name = meta.get("name", f.parent.name)
+            name = meta.get("name", f.parent.name)  # fallback: 目录名
             self.skills[name] = {"meta": meta, "body": body}
 
-    def get_descriptions(self) -> str:
+    def get_descriptions(self) -> str:    # 第一层: 仅返回名称+简介（低成本）
         lines = []
         for name, skill in self.skills.items():
             desc = skill["meta"].get("description", "")
             lines.append(f"  - {name}: {desc}")
         return "\n".join(lines)
 
-    def get_content(self, name: str) -> str:
+    def get_content(self, name: str) -> str:   # 第二层: 按需返回完整内容（贵）
         skill = self.skills.get(name)
         if not skill:
             return f"Error: Unknown skill '{name}'."
@@ -76,11 +76,11 @@ class SkillLoader:
 ```python
 SYSTEM = f"""You are a coding agent at {WORKDIR}.
 Skills available:
-{SKILL_LOADER.get_descriptions()}"""
+{SKILL_LOADER.get_descriptions()}"""  # 第一层嵌入系统提示
 
 TOOL_HANDLERS = {
     # ...base tools...
-    "load_skill": lambda **kw: SKILL_LOADER.get_content(kw["name"]),
+    "load_skill": lambda **kw: SKILL_LOADER.get_content(kw["name"]),  # 第二层按需触发
 }
 ```
 

@@ -43,10 +43,10 @@ class TodoManager:
         for item in items:
             status = item.get("status", "pending")
             if status == "in_progress":
-                in_progress_count += 1
+                in_progress_count += 1  # 统计当前活跃任务数
             validated.append({"id": item["id"], "text": item["text"],
                               "status": status})
-        if in_progress_count > 1:
+        if in_progress_count > 1:          # 强制单任务聚焦规则
             raise ValueError("Only one task can be in_progress")
         self.items = validated
         return self.render()
@@ -57,17 +57,17 @@ class TodoManager:
 ```python
 TOOL_HANDLERS = {
     # ...base tools...
-    "todo": lambda **kw: TODO.update(kw["items"]),
+    "todo": lambda **kw: TODO.update(kw["items"]),  # 与其他工具接口完全一致
 }
 ```
 
 3. nag reminder: 模型连续 3 轮以上不调用 `todo` 时注入提醒。
 
 ```python
-if rounds_since_todo >= 3 and messages:
+if rounds_since_todo >= 3 and messages:     # 连续 3 轮没更新 todo
     last = messages[-1]
     if last["role"] == "user" and isinstance(last.get("content"), list):
-        last["content"].insert(0, {
+        last["content"].insert(0, {          # 在下一轮用户消息头部插入提醒
             "type": "text",
             "text": "<reminder>Update your todos.</reminder>",
         })

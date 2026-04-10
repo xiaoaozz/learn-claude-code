@@ -45,10 +45,10 @@ Trackers:
 1. リーダーがrequest_idを生成し、インボックス経由でシャットダウンを開始する。
 
 ```python
-shutdown_requests = {}
+shutdown_requests = {}              # req_id -> {target, status}
 
 def handle_shutdown_request(teammate: str) -> str:
-    req_id = str(uuid.uuid4())[:8]
+    req_id = str(uuid.uuid4())[:8]  # 封筒に使う一意 IDを生成
     shutdown_requests[req_id] = {"target": teammate, "status": "pending"}
     BUS.send("lead", teammate, "Please shut down gracefully.",
              "shutdown_request", {"request_id": req_id})
@@ -59,7 +59,7 @@ def handle_shutdown_request(teammate: str) -> str:
 
 ```python
 if tool_name == "shutdown_response":
-    req_id = args["request_id"]
+    req_id = args["request_id"]            # 保留中のリクエストと照合
     approve = args["approve"]
     shutdown_requests[req_id]["status"] = "approved" if approve else "rejected"
     BUS.send(sender, "lead", args.get("reason", ""),
@@ -70,10 +70,10 @@ if tool_name == "shutdown_response":
 3. プラン承認も同一パターン。チームメイトがプランを提出(request_idを生成)、リーダーがレビュー(同じrequest_idを参照)。
 
 ```python
-plan_requests = {}
+plan_requests = {}                  # req_id -> {from, plan, status}
 
 def handle_plan_review(request_id, approve, feedback=""):
-    req = plan_requests[request_id]
+    req = plan_requests[request_id] # 同じ request_id で検索
     req["status"] = "approved" if approve else "rejected"
     BUS.send("lead", req["from"], feedback,
              "plan_approval_response",

@@ -43,10 +43,10 @@ class TodoManager:
         for item in items:
             status = item.get("status", "pending")
             if status == "in_progress":
-                in_progress_count += 1
+                in_progress_count += 1  # count concurrent active tasks
             validated.append({"id": item["id"], "text": item["text"],
                               "status": status})
-        if in_progress_count > 1:
+        if in_progress_count > 1:          # enforce single-focus rule
             raise ValueError("Only one task can be in_progress")
         self.items = validated
         return self.render()
@@ -57,17 +57,17 @@ class TodoManager:
 ```python
 TOOL_HANDLERS = {
     # ...base tools...
-    "todo": lambda **kw: TODO.update(kw["items"]),
+    "todo": lambda **kw: TODO.update(kw["items"]),  # same interface as any tool
 }
 ```
 
 3. A nag reminder injects a nudge if the model goes 3+ rounds without calling `todo`.
 
 ```python
-if rounds_since_todo >= 3 and messages:
+if rounds_since_todo >= 3 and messages:     # model ignored todos for 3+ rounds
     last = messages[-1]
     if last["role"] == "user" and isinstance(last.get("content"), list):
-        last["content"].insert(0, {
+        last["content"].insert(0, {          # prepend reminder to next user turn
             "type": "text",
             "text": "<reminder>Update your todos.</reminder>",
         })

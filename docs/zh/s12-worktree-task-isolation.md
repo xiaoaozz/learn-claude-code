@@ -40,7 +40,7 @@ State machines:
 
 ```python
 TASKS.create("Implement auth refactor")
-# -> .tasks/task_1.json  status=pending  worktree=""
+# -> .tasks/task_1.json  status=pending  worktree=""  （还没有 worktree）
 ```
 
 2. **创建 worktree 并绑定任务。** 传入 `task_id` 自动将任务推进到 `in_progress`。
@@ -56,16 +56,16 @@ WORKTREES.create("auth-refactor", task_id=1)
 ```python
 def bind_worktree(self, task_id, worktree):
     task = self._load(task_id)
-    task["worktree"] = worktree
+    task["worktree"] = worktree            # 任务 -> worktree 名称
     if task["status"] == "pending":
-        task["status"] = "in_progress"
+        task["status"] = "in_progress"     # 自动推进任务状态
     self._save(task)
 ```
 
 3. **在 worktree 中执行命令。** `cwd` 指向隔离目录。
 
 ```python
-subprocess.run(command, shell=True, cwd=worktree_path,
+subprocess.run(command, shell=True, cwd=worktree_path,  # 实际执行目录实现隔离
                capture_output=True, text=True, timeout=300)
 ```
 
@@ -75,11 +75,11 @@ subprocess.run(command, shell=True, cwd=worktree_path,
 
 ```python
 def remove(self, name, force=False, complete_task=False):
-    self._run_git(["worktree", "remove", wt["path"]])
+    self._run_git(["worktree", "remove", wt["path"]])  # 删除目录
     if complete_task and wt.get("task_id") is not None:
-        self.tasks.update(wt["task_id"], status="completed")
-        self.tasks.unbind_worktree(wt["task_id"])
-        self.events.emit("task.completed", ...)
+        self.tasks.update(wt["task_id"], status="completed")  # 自动完成任务
+        self.tasks.unbind_worktree(wt["task_id"])             # 清除绑定
+        self.events.emit("task.completed", ...)               # 发射生命周期事件
 ```
 
 5. **事件流。** 每个生命周期步骤写入 `.worktrees/events.jsonl`:

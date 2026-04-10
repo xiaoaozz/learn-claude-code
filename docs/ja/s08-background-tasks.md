@@ -37,21 +37,21 @@ Agent --[spawn A]--[spawn B]--[other work]----
 ```python
 class BackgroundManager:
     def __init__(self):
-        self.tasks = {}
-        self._notification_queue = []
-        self._lock = threading.Lock()
+        self.tasks = {}                    # task_id -> メタデータ
+        self._notification_queue = []      # 完了結果の待機キュー
+        self._lock = threading.Lock()      # 共有キューを保護するスレッドロック
 ```
 
 2. `run()`がデーモンスレッドを開始し、即座にリターンする。
 
 ```python
 def run(self, command: str) -> str:
-    task_id = str(uuid.uuid4())[:8]
+    task_id = str(uuid.uuid4())[:8]        # 追跡用の短一意 ID
     self.tasks[task_id] = {"status": "running", "command": command}
     thread = threading.Thread(
-        target=self._execute, args=(task_id, command), daemon=True)
+        target=self._execute, args=(task_id, command), daemon=True)  # daemon: メイン終了時に自動停止
     thread.start()
-    return f"Background task {task_id} started"
+    return f"Background task {task_id} started"  # 即座に戻る
 ```
 
 3. サブプロセス完了時に、結果を通知キューへ。
@@ -61,10 +61,10 @@ def _execute(self, task_id, command):
     try:
         r = subprocess.run(command, shell=True, cwd=WORKDIR,
             capture_output=True, text=True, timeout=300)
-        output = (r.stdout + r.stderr).strip()[:50000]
+        output = (r.stdout + r.stderr).strip()[:50000]  # 最大50k文字に制限
     except subprocess.TimeoutExpired:
         output = "Error: Timeout (300s)"
-    with self._lock:
+    with self._lock:                       # 共有キューへの書き込み値にロック
         self._notification_queue.append({
             "task_id": task_id, "result": output[:500]})
 ```
@@ -74,11 +74,11 @@ def _execute(self, task_id, command):
 ```python
 def agent_loop(messages: list):
     while True:
-        notifs = BG.drain_notifications()
+        notifs = BG.drain_notifications()  # 完了したバックグラウンド結果を収集
         if notifs:
             notif_text = "\n".join(
                 f"[bg:{n['task_id']}] {n['result']}" for n in notifs)
-            messages.append({"role": "user",
+            messages.append({"role": "user",   # LLMに渡す前にコンテキストに注入
                 "content": f"<background-results>\n{notif_text}\n"
                            f"</background-results>"})
         response = client.messages.create(...)

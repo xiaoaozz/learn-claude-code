@@ -43,10 +43,10 @@ class TodoManager:
         for item in items:
             status = item.get("status", "pending")
             if status == "in_progress":
-                in_progress_count += 1
+                in_progress_count += 1  # 同時進行中のタスク数をカウント
             validated.append({"id": item["id"], "text": item["text"],
                               "status": status})
-        if in_progress_count > 1:
+        if in_progress_count > 1:          # 単一タスク集中ルールを強制
             raise ValueError("Only one task can be in_progress")
         self.items = validated
         return self.render()
@@ -57,17 +57,17 @@ class TodoManager:
 ```python
 TOOL_HANDLERS = {
     # ...base tools...
-    "todo": lambda **kw: TODO.update(kw["items"]),
+    "todo": lambda **kw: TODO.update(kw["items"]),  # 他のツールと同じインターフェース
 }
 ```
 
 3. nagリマインダーが、モデルが3ラウンド以上`todo`を呼ばなかった場合にナッジを注入する。
 
 ```python
-if rounds_since_todo >= 3 and messages:
+if rounds_since_todo >= 3 and messages:     # 3ラウンド以上todoを更新しない場合
     last = messages[-1]
     if last["role"] == "user" and isinstance(last.get("content"), list):
-        last["content"].insert(0, {
+        last["content"].insert(0, {          # 次のuserメッセージの先頭にリマインダーを挿入
             "type": "text",
             "text": "<reminder>Update your todos.</reminder>",
         })

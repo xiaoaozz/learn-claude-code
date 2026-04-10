@@ -35,17 +35,17 @@ One lookup replaces any if/elif chain.
 
 ```python
 def safe_path(p: str) -> Path:
-    path = (WORKDIR / p).resolve()
-    if not path.is_relative_to(WORKDIR):
+    path = (WORKDIR / p).resolve()         # 解析符号链接／防路径穿越
+    if not path.is_relative_to(WORKDIR):   # 封锁工作区外路径
         raise ValueError(f"Path escapes workspace: {p}")
     return path
 
 def run_read(path: str, limit: int = None) -> str:
     text = safe_path(path).read_text()
     lines = text.splitlines()
-    if limit and limit < len(lines):
+    if limit and limit < len(lines):       # 尊重可选的行数限制
         lines = lines[:limit]
-    return "\n".join(lines)[:50000]
+    return "\n".join(lines)[:50000]        # 单次最多返回 50k 字符
 ```
 
 2. dispatch map 将工具名映射到处理函数。
@@ -56,7 +56,7 @@ TOOL_HANDLERS = {
     "read_file":  lambda **kw: run_read(kw["path"], kw.get("limit")),
     "write_file": lambda **kw: run_write(kw["path"], kw["content"]),
     "edit_file":  lambda **kw: run_edit(kw["path"], kw["old_text"],
-                                        kw["new_text"]),
+                                        kw["new_text"]),  # 每个工具对应一个 lambda
 }
 ```
 
@@ -65,7 +65,7 @@ TOOL_HANDLERS = {
 ```python
 for block in response.content:
     if block.type == "tool_use":
-        handler = TOOL_HANDLERS.get(block.name)
+        handler = TOOL_HANDLERS.get(block.name)  # 一次字典查找，不用 if/elif
         output = handler(**block.input) if handler \
             else f"Unknown tool: {block.name}"
         results.append({

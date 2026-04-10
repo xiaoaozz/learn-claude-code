@@ -43,10 +43,10 @@ Communication:
 class TeammateManager:
     def __init__(self, team_dir: Path):
         self.dir = team_dir
-        self.dir.mkdir(exist_ok=True)
+        self.dir.mkdir(exist_ok=True)      # create .team/ on first run
         self.config_path = self.dir / "config.json"
-        self.config = self._load_config()
-        self.threads = {}
+        self.config = self._load_config()  # load or init roster
+        self.threads = {}                  # name -> thread mapping
 ```
 
 2. `spawn()` creates a teammate and starts its agent loop in a thread.
@@ -55,10 +55,10 @@ class TeammateManager:
 def spawn(self, name: str, role: str, prompt: str) -> str:
     member = {"name": name, "role": role, "status": "working"}
     self.config["members"].append(member)
-    self._save_config()
+    self._save_config()                    # persist roster before thread starts
     thread = threading.Thread(
         target=self._teammate_loop,
-        args=(name, role, prompt), daemon=True)
+        args=(name, role, prompt), daemon=True)  # daemon: exits with main process
     thread.start()
     return f"Spawned teammate '{name}' (role: {role})"
 ```
@@ -71,15 +71,15 @@ class MessageBus:
         msg = {"type": msg_type, "from": sender,
                "content": content, "timestamp": time.time()}
         if extra:
-            msg.update(extra)
+            msg.update(extra)              # merge protocol fields (e.g. request_id)
         with open(self.dir / f"{to}.jsonl", "a") as f:
-            f.write(json.dumps(msg) + "\n")
+            f.write(json.dumps(msg) + "\n")  # append-only log
 
     def read_inbox(self, name):
         path = self.dir / f"{name}.jsonl"
         if not path.exists(): return "[]"
         msgs = [json.loads(l) for l in path.read_text().strip().splitlines() if l]
-        path.write_text("")  # drain
+        path.write_text("")              # drain after reading
         return json.dumps(msgs, indent=2)
 ```
 
@@ -89,15 +89,15 @@ class MessageBus:
 def _teammate_loop(self, name, role, prompt):
     messages = [{"role": "user", "content": prompt}]
     for _ in range(50):
-        inbox = BUS.read_inbox(name)
+        inbox = BUS.read_inbox(name)       # drain inbox before each LLM call
         if inbox != "[]":
             messages.append({"role": "user",
                 "content": f"<inbox>{inbox}</inbox>"})
         response = client.messages.create(...)
         if response.stop_reason != "tool_use":
-            break
+            break                          # teammate finished naturally
         # execute tools, append results...
-    self._find_member(name)["status"] = "idle"
+    self._find_member(name)["status"] = "idle"  # mark idle on exit
 ```
 
 ## What Changed From s08

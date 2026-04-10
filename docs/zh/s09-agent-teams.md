@@ -43,10 +43,10 @@ Communication:
 class TeammateManager:
     def __init__(self, team_dir: Path):
         self.dir = team_dir
-        self.dir.mkdir(exist_ok=True)
+        self.dir.mkdir(exist_ok=True)      # 首次运行创建 .team/
         self.config_path = self.dir / "config.json"
-        self.config = self._load_config()
-        self.threads = {}
+        self.config = self._load_config()  # 加载或初始化名册
+        self.threads = {}                  # name -> 线程对象
 ```
 
 2. `spawn()` 创建队友并在线程中启动 agent loop。
@@ -55,10 +55,10 @@ class TeammateManager:
 def spawn(self, name: str, role: str, prompt: str) -> str:
     member = {"name": name, "role": role, "status": "working"}
     self.config["members"].append(member)
-    self._save_config()
+    self._save_config()                    # 先落盘名册再启线程
     thread = threading.Thread(
         target=self._teammate_loop,
-        args=(name, role, prompt), daemon=True)
+        args=(name, role, prompt), daemon=True)  # daemon: 随主进程退出
     thread.start()
     return f"Spawned teammate '{name}' (role: {role})"
 ```
@@ -71,15 +71,15 @@ class MessageBus:
         msg = {"type": msg_type, "from": sender,
                "content": content, "timestamp": time.time()}
         if extra:
-            msg.update(extra)
+            msg.update(extra)              # 合并协议字段（如 request_id）
         with open(self.dir / f"{to}.jsonl", "a") as f:
-            f.write(json.dumps(msg) + "\n")
+            f.write(json.dumps(msg) + "\n")  # 纯追加，永不覆写
 
     def read_inbox(self, name):
         path = self.dir / f"{name}.jsonl"
         if not path.exists(): return "[]"
         msgs = [json.loads(l) for l in path.read_text().strip().splitlines() if l]
-        path.write_text("")  # drain
+        path.write_text("")              # 读后清空
         return json.dumps(msgs, indent=2)
 ```
 
@@ -89,15 +89,15 @@ class MessageBus:
 def _teammate_loop(self, name, role, prompt):
     messages = [{"role": "user", "content": prompt}]
     for _ in range(50):
-        inbox = BUS.read_inbox(name)
+        inbox = BUS.read_inbox(name)       # 每次 LLM 调用前先清空收件筱
         if inbox != "[]":
             messages.append({"role": "user",
                 "content": f"<inbox>{inbox}</inbox>"})
         response = client.messages.create(...)
         if response.stop_reason != "tool_use":
-            break
+            break                          # 队友自然结束
         # execute tools, append results...
-    self._find_member(name)["status"] = "idle"
+    self._find_member(name)["status"] = "idle"  # 退出后标记为空闲
 ```
 
 ## 相对 s08 的变更

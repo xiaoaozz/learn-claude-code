@@ -35,17 +35,17 @@ One lookup replaces any if/elif chain.
 
 ```python
 def safe_path(p: str) -> Path:
-    path = (WORKDIR / p).resolve()
-    if not path.is_relative_to(WORKDIR):
+    path = (WORKDIR / p).resolve()         # resolve symlinks / traversal
+    if not path.is_relative_to(WORKDIR):   # block workspace escape
         raise ValueError(f"Path escapes workspace: {p}")
     return path
 
 def run_read(path: str, limit: int = None) -> str:
     text = safe_path(path).read_text()
     lines = text.splitlines()
-    if limit and limit < len(lines):
+    if limit and limit < len(lines):       # honour optional line limit
         lines = lines[:limit]
-    return "\n".join(lines)[:50000]
+    return "\n".join(lines)[:50000]        # cap at 50k chars
 ```
 
 2. The dispatch map links tool names to handlers.
@@ -56,7 +56,7 @@ TOOL_HANDLERS = {
     "read_file":  lambda **kw: run_read(kw["path"], kw.get("limit")),
     "write_file": lambda **kw: run_write(kw["path"], kw["content"]),
     "edit_file":  lambda **kw: run_edit(kw["path"], kw["old_text"],
-                                        kw["new_text"]),
+                                        kw["new_text"]),  # each tool → one lambda
 }
 ```
 
@@ -65,7 +65,7 @@ TOOL_HANDLERS = {
 ```python
 for block in response.content:
     if block.type == "tool_use":
-        handler = TOOL_HANDLERS.get(block.name)
+        handler = TOOL_HANDLERS.get(block.name)  # one dict lookup — no if/elif
         output = handler(**block.input) if handler \
             else f"Unknown tool: {block.name}"
         results.append({

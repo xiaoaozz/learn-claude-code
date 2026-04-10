@@ -45,10 +45,10 @@ Trackers:
 1. 领导生成 request_id, 通过收件箱发起关机请求。
 
 ```python
-shutdown_requests = {}
+shutdown_requests = {}              # req_id -> {target, status}
 
 def handle_shutdown_request(teammate: str) -> str:
-    req_id = str(uuid.uuid4())[:8]
+    req_id = str(uuid.uuid4())[:8]  # 生成唯一 ID 用于关联
     shutdown_requests[req_id] = {"target": teammate, "status": "pending"}
     BUS.send("lead", teammate, "Please shut down gracefully.",
              "shutdown_request", {"request_id": req_id})
@@ -59,7 +59,7 @@ def handle_shutdown_request(teammate: str) -> str:
 
 ```python
 if tool_name == "shutdown_response":
-    req_id = args["request_id"]
+    req_id = args["request_id"]            # 匹配到待处理请求
     approve = args["approve"]
     shutdown_requests[req_id]["status"] = "approved" if approve else "rejected"
     BUS.send(sender, "lead", args.get("reason", ""),
@@ -70,10 +70,10 @@ if tool_name == "shutdown_response":
 3. 计划审批遵循完全相同的模式。队友提交计划 (生成 request_id), 领导审查 (引用同一个 request_id)。
 
 ```python
-plan_requests = {}
+plan_requests = {}                  # req_id -> {from, plan, status}
 
 def handle_plan_review(request_id, approve, feedback=""):
-    req = plan_requests[request_id]
+    req = plan_requests[request_id] # 用相同的 request_id 查找
     req["status"] = "approved" if approve else "rejected"
     BUS.send("lead", req["from"], feedback,
              "plan_approval_response",

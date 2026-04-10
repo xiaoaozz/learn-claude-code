@@ -37,7 +37,7 @@ PARENT_TOOLS = CHILD_TOOLS + [
      "input_schema": {
          "type": "object",
          "properties": {"prompt": {"type": "string"}},
-         "required": ["prompt"],
+         "required": ["prompt"],  # 渡るのはテキストプロンプトのみ
      }},
 ]
 ```
@@ -46,7 +46,7 @@ PARENT_TOOLS = CHILD_TOOLS + [
 
 ```python
 def run_subagent(prompt: str) -> str:
-    sub_messages = [{"role": "user", "content": prompt}]
+    sub_messages = [{"role": "user", "content": prompt}]  # 新鮮なコンテキスト—何も引き継がない
     for _ in range(30):  # safety limit
         response = client.messages.create(
             model=MODEL, system=SUBAGENT_SYSTEM,
@@ -55,7 +55,7 @@ def run_subagent(prompt: str) -> str:
         )
         sub_messages.append({"role": "assistant",
                              "content": response.content})
-        if response.stop_reason != "tool_use":
+        if response.stop_reason != "tool_use":  # サブエージェント完了
             break
         results = []
         for block in response.content:
@@ -68,7 +68,7 @@ def run_subagent(prompt: str) -> str:
         sub_messages.append({"role": "user", "content": results})
     return "".join(
         b.text for b in response.content if hasattr(b, "text")
-    ) or "(no summary)"
+    ) or "(no summary)"  # 最終テキストのみが親に返る
 ```
 
 子のメッセージ履歴全体(30回以上のツール呼び出し)は破棄される。親は1段落の要約を通常の`tool_result`として受け取る。

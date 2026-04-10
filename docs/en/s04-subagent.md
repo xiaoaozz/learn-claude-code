@@ -37,7 +37,7 @@ PARENT_TOOLS = CHILD_TOOLS + [
      "input_schema": {
          "type": "object",
          "properties": {"prompt": {"type": "string"}},
-         "required": ["prompt"],
+         "required": ["prompt"],  # only a plain text prompt crosses the boundary
      }},
 ]
 ```
@@ -46,8 +46,8 @@ PARENT_TOOLS = CHILD_TOOLS + [
 
 ```python
 def run_subagent(prompt: str) -> str:
-    sub_messages = [{"role": "user", "content": prompt}]
-    for _ in range(30):  # safety limit
+    sub_messages = [{"role": "user", "content": prompt}]  # fresh context — nothing inherited
+    for _ in range(30):  # safety limit: max 30 tool calls
         response = client.messages.create(
             model=MODEL, system=SUBAGENT_SYSTEM,
             messages=sub_messages,
@@ -55,7 +55,7 @@ def run_subagent(prompt: str) -> str:
         )
         sub_messages.append({"role": "assistant",
                              "content": response.content})
-        if response.stop_reason != "tool_use":
+        if response.stop_reason != "tool_use":  # subagent finished
             break
         results = []
         for block in response.content:
@@ -68,7 +68,7 @@ def run_subagent(prompt: str) -> str:
         sub_messages.append({"role": "user", "content": results})
     return "".join(
         b.text for b in response.content if hasattr(b, "text")
-    ) or "(no summary)"
+    ) or "(no summary)"            # only the final text returns to parent
 ```
 
 The child's entire message history (possibly 30+ tool calls) is discarded. The parent receives a one-paragraph summary as a normal `tool_result`.

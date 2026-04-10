@@ -45,10 +45,10 @@ Trackers:
 1. The lead initiates shutdown by generating a request_id and sending through the inbox.
 
 ```python
-shutdown_requests = {}
+shutdown_requests = {}              # req_id -> {target, status}
 
 def handle_shutdown_request(teammate: str) -> str:
-    req_id = str(uuid.uuid4())[:8]
+    req_id = str(uuid.uuid4())[:8]  # unique ID for correlation
     shutdown_requests[req_id] = {"target": teammate, "status": "pending"}
     BUS.send("lead", teammate, "Please shut down gracefully.",
              "shutdown_request", {"request_id": req_id})
@@ -59,7 +59,7 @@ def handle_shutdown_request(teammate: str) -> str:
 
 ```python
 if tool_name == "shutdown_response":
-    req_id = args["request_id"]
+    req_id = args["request_id"]            # match to the pending request
     approve = args["approve"]
     shutdown_requests[req_id]["status"] = "approved" if approve else "rejected"
     BUS.send(sender, "lead", args.get("reason", ""),
@@ -70,10 +70,10 @@ if tool_name == "shutdown_response":
 3. Plan approval follows the identical pattern. The teammate submits a plan (generating a request_id), the lead reviews (referencing the same request_id).
 
 ```python
-plan_requests = {}
+plan_requests = {}                  # req_id -> {from, plan, status}
 
 def handle_plan_review(request_id, approve, feedback=""):
-    req = plan_requests[request_id]
+    req = plan_requests[request_id] # look up by same request_id
     req["status"] = "approved" if approve else "rejected"
     BUS.send("lead", req["from"], feedback,
              "plan_approval_response",

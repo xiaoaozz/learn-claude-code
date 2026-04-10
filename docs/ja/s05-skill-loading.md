@@ -51,20 +51,20 @@ skills/
 class SkillLoader:
     def __init__(self, skills_dir: Path):
         self.skills = {}
-        for f in sorted(skills_dir.rglob("SKILL.md")):
+        for f in sorted(skills_dir.rglob("SKILL.md")):  # 全スキルを再帰的に発見
             text = f.read_text()
             meta, body = self._parse_frontmatter(text)
-            name = meta.get("name", f.parent.name)
+            name = meta.get("name", f.parent.name)  # fallback: ディレクトリ名
             self.skills[name] = {"meta": meta, "body": body}
 
-    def get_descriptions(self) -> str:
+    def get_descriptions(self) -> str:    # 第1層: 名前のみ返す（低コスト）
         lines = []
         for name, skill in self.skills.items():
             desc = skill["meta"].get("description", "")
             lines.append(f"  - {name}: {desc}")
         return "\n".join(lines)
 
-    def get_content(self, name: str) -> str:
+    def get_content(self, name: str) -> str:   # 第2層: オンデマンドで完全な内容を返す
         skill = self.skills.get(name)
         if not skill:
             return f"Error: Unknown skill '{name}'."
@@ -76,11 +76,11 @@ class SkillLoader:
 ```python
 SYSTEM = f"""You are a coding agent at {WORKDIR}.
 Skills available:
-{SKILL_LOADER.get_descriptions()}"""
+{SKILL_LOADER.get_descriptions()}"""  # 第1層をシステムプロンプトに埋め込む
 
 TOOL_HANDLERS = {
     # ...base tools...
-    "load_skill": lambda **kw: SKILL_LOADER.get_content(kw["name"]),
+    "load_skill": lambda **kw: SKILL_LOADER.get_content(kw["name"]),  # 第2層は呼び出し時
 }
 ```
 
