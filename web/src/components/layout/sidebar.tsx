@@ -20,6 +20,9 @@ export function Sidebar() {
   const t = useTranslations("sessions");
   const tLayer = useTranslations("layer_labels");
 
+  // Detect if we're in the showcase section
+  const isShowcase = pathname.includes("/showcase");
+
   return (
     <nav className="hidden w-56 shrink-0 md:block">
       <div className="sticky top-[calc(3.5rem+2rem)] space-y-5">
@@ -34,11 +37,14 @@ export function Sidebar() {
             <ul className="space-y-0.5">
               {layer.versions.map((vId) => {
                 const meta = VERSION_META[vId];
-                const href = `/${locale}/${vId}`;
-                const isActive =
-                  pathname === href ||
-                  pathname === `${href}/` ||
-                  pathname.startsWith(`${href}/diff`);
+                const href = isShowcase
+                  ? `/${locale}/showcase/${vId}`
+                  : `/${locale}/${vId}`;
+                const isActive = isShowcase
+                  ? pathname === href || pathname === `${href}/`
+                  : pathname === href ||
+                    pathname === `${href}/` ||
+                    pathname.startsWith(`${href}/diff`);
 
                 return (
                   <li key={vId}>
